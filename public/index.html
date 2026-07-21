@@ -320,6 +320,23 @@ mark{background:var(--rmf-select-fill);color:inherit;border-radius:3px;padding:0
   font:inherit;font-size:.95rem;line-height:1.5;padding:10px 8px 10px 12px;min-height:42px;max-height:180px;
 }
 .composer textarea::placeholder{color:var(--md-sys-color-on-surface-variant)}
+/* Dictation toggle. Stays hidden until JS confirms the browser can recognise
+   speech locally — the cloud path is never offered, so no button is better
+   than a button that would ship audio off the device. */
+.mic-btn{
+  width:40px;height:40px;flex:0 0 auto;border:none;border-radius:50%;cursor:pointer;display:grid;place-items:center;
+  font-size:.92rem;background:transparent;color:var(--md-sys-color-on-surface-variant);
+  transition:background .15s,color .15s,opacity .15s;
+}
+.mic-btn:hover:not(:disabled){background:var(--md-sys-color-surface-container-high);color:var(--md-sys-color-on-surface)}
+.mic-btn:disabled{opacity:.35;cursor:not-allowed}
+.mic-btn.is-live{background:var(--rmf-danger-fill);color:var(--rmf-danger);animation:mic-ring 1.6s ease-out infinite}
+@keyframes mic-ring{
+  0%{box-shadow:0 0 0 0 var(--rmf-danger-fill)}
+  70%,100%{box-shadow:0 0 0 8px transparent}
+}
+@media (prefers-reduced-motion:reduce){ .mic-btn.is-live{animation:none} }
+
 .send-btn{
   width:40px;height:40px;flex:0 0 auto;border:none;border-radius:50%;cursor:pointer;display:grid;place-items:center;
   font-size:.92rem;background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary);transition:filter .15s,opacity .15s;
@@ -678,6 +695,9 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
 
     <div class="composer-wrap">
       <form class="composer" id="composer">
+        <button class="mic-btn hidden" id="btn-mic" type="button">
+          <i class="fa-solid fa-microphone"></i>
+        </button>
         <textarea id="in-msg" rows="1" disabled></textarea>
         <button class="send-btn" id="btn-send" type="submit" disabled data-i18n-title="composer.send" data-i18n-aria="composer.send">
           <i class="fa-solid fa-arrow-up"></i>

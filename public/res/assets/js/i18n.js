@@ -52,6 +52,15 @@ const I18N = {
     "composer.stop": "Stop",
     "composer.hint": "A Prompt API testbed that runs entirely in your browser. Nothing is sent to a server.",
 
+    "mic.start": "Dictate — recognised on this device",
+    "mic.stop": "Stop dictation",
+    "mic.downloading": "Downloading the speech model — this happens once",
+    "mic.ready": "Speech model ready",
+    "mic.noLang": "No on-device speech model for this language",
+    "mic.denied": "Microphone access denied",
+    "mic.noSpeech": "No speech detected",
+    "mic.error": "Dictation failed",
+
     "msg.you": "You",
     "msg.ai": "U Local AI",
     "msg.error": "Error",
@@ -217,6 +226,15 @@ const I18N = {
     "composer.send": "Enviar",
     "composer.stop": "Parar",
     "composer.hint": "Um teste da Prompt API que roda inteiramente no seu navegador. Nada é enviado a um servidor.",
+
+    "mic.start": "Ditar — reconhecido neste dispositivo",
+    "mic.stop": "Parar de ditar",
+    "mic.downloading": "Baixando o modelo de voz — só na primeira vez",
+    "mic.ready": "Modelo de voz pronto",
+    "mic.noLang": "Sem modelo de voz local para este idioma",
+    "mic.denied": "Acesso ao microfone negado",
+    "mic.noSpeech": "Nenhuma fala detectada",
+    "mic.error": "Falha no ditado",
 
     "msg.you": "Você",
     "msg.ai": "U Local AI",
