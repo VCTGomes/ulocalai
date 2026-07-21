@@ -1,0 +1,31 @@
+# U Local AI
+
+> A testbed for Chrome's built-in Prompt API (`window.LanguageModel`), which runs Gemini Nano
+> on-device. It is a ChatGPT-style chat where the model is local, conversations live in
+> IndexedDB, and no network request is ever made — no backend, no accounts, no analytics.
+
+The whole app is a single static page served by a ~50-line dependency-free Node server. It
+requires Chrome with `chrome://flags/#prompt-api-for-gemini-nano` enabled; without it the app
+shows a screen explaining what is missing.
+
+## What it exercises
+
+- Model lifecycle — `availability()`, `params()` and the download monitor with live progress.
+- Sessions — `create()` with a system prompt, `temperature` and `topK`, replayed history, `destroy()`.
+- Generation — `promptStreaming()` token by token, with an abort button.
+- Limits — context usage against `inputQuota` and the `quotaoverflow` event.
+
+It is also a PWA with an offline service worker, light/dark themes, pt/en i18n, and an event
+log that shows what the API is doing.
+
+## Pages
+
+- [Home](https://ulocalai.com/): the app itself — the only indexable page.
+- [Source](https://github.com/VCTGomes/ulocalai): the project is MIT-licensed and open source.
+
+## Optional
+
+- Conversation routes (`/chat/<id>`, `/new`) render the same shell and hold no public
+  content; conversations are private to the browser that created them.
+- Answers come from a small on-device model and can be wrong or incomplete. There is no
+  fallback to a hosted model.
