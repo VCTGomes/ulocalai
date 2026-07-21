@@ -353,6 +353,16 @@ a.icon-btn{text-decoration:none}
   background:var(--md-sys-color-surface-container-low);transition:border-color .15s,box-shadow .15s;
 }
 .composer:focus-within{border-color:var(--md-sys-color-primary);box-shadow:0 0 0 1px var(--md-sys-color-primary)}
+/* Staged attachment preview */
+.attach{max-width:768px;margin:0 auto 8px;position:relative;width:max-content}
+.attach img{max-height:120px;max-width:100%;border-radius:var(--rmf-radius-md);display:block;border:1px solid var(--md-sys-color-outline-variant)}
+.attach__x{
+  position:absolute;top:-8px;right:-8px;width:26px;height:26px;border:none;border-radius:50%;cursor:pointer;
+  background:var(--md-sys-color-inverse-surface);color:var(--md-sys-color-inverse-on-surface);
+  font-size:.72rem;display:grid;place-items:center;box-shadow:var(--rmf-elev-2);
+}
+/* Image inside a chat message */
+.msg__img{max-width:min(320px,100%);max-height:280px;border-radius:var(--rmf-radius-md);display:block;margin-bottom:8px;border:1px solid var(--md-sys-color-outline-variant)}
 .composer textarea{
   flex:1;resize:none;border:none;outline:none;background:none;color:inherit;
   font:inherit;font-size:.95rem;line-height:1.5;padding:10px 8px 10px 12px;min-height:42px;max-height:180px;
@@ -788,7 +798,19 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
     </div>
 
     <div class="composer-wrap">
+      <!-- Staged image, shown above the composer until it is sent or removed -->
+      <div class="attach hidden" id="attach">
+        <img id="attach-img" alt="">
+        <button class="attach__x" id="attach-remove" type="button" data-i18n-aria="mm.remove">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
       <form class="composer" id="composer">
+        <!-- Hidden until the engine confirms it can read images -->
+        <button class="mic-btn hidden" id="btn-attach" type="button" data-i18n-title="mm.attach" data-i18n-aria="mm.attach">
+          <i class="fa-solid fa-image"></i>
+        </button>
+        <input type="file" id="in-file" accept="image/*" class="hidden">
         <button class="mic-btn hidden" id="btn-mic" type="button">
           <i class="fa-solid fa-microphone"></i>
         </button>

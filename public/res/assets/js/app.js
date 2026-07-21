@@ -165,6 +165,8 @@ const state = {
   busy: false,
   abort: null,      // the running generation
   dlAbort: null,    // the running model download
+  attachment: null, // { dataUrl } staged for the next message
+  canImage: false,  // does the active engine/model accept images
   cached: null,     // Set of WebLLM ids on disk; null while still unknown
   gpu: null,        // probeGPU() result, once asked for
   lastRun: null,    // timings of the most recent generation
@@ -190,6 +192,22 @@ function toast(msg) {
   toastTimer = setTimeout(() => $("toast").classList.remove("is-on"), 2200);
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+/* ══ Image helpers (multimodal input) ══════════════════════════
+   Images are stored on the message as data URLs — they survive the
+   JSON round-trip into IndexedDB that a Blob would not — and turned back into
+   Blobs only at the moment the Prompt API is handed them. */
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(file);
+  });
+}
+async function dataUrlToBlob(dataUrl) {
+  return (await fetch(dataUrl)).blob();
+}
 
 /* Very small markdown subset: fenced code, inline code, bold, italic.
    Everything else stays literal — the container is white-space:pre-wrap. */
@@ -680,11 +698,11 @@ function renderChat() {
   msgs.classList.toggle("hidden", empty);
   if (empty) return;
 
-  for (const m of c.messages) appendMsg(m.role, m.content);
+  for (const m of c.messages) appendMsg(m.role, m.content, m.image);
   scrollDown(true);
 }
 
-function appendMsg(role, content) {
+function appendMsg(role, content, image) {
   const who = role === "user" ? "user" : role === "error" ? "err" : "ai";
   const el = document.createElement("div");
   el.className = "msg msg--" + who;
@@ -700,7 +718,17 @@ function appendMsg(role, content) {
     </div>`;
   el.querySelector(".msg__who").textContent = name;
   const body = el.querySelector(".msg__text");
-  body.innerHTML = render(content);
+  // The attached image sits above the text, the way it does in the composer.
+  if (image) {
+    const img = document.createElement("img");
+    img.className = "msg__img";
+    img.src = image;
+    img.alt = t("mm.imageAlt");
+    body.appendChild(img);
+  }
+  const txt = document.createElement("span");
+  txt.innerHTML = render(content);
+  body.appendChild(txt);
 
   if (who !== "err") {
     const copy = document.createElement("button");
@@ -792,8 +820,12 @@ async function send(text) {
   $("welcome").classList.add("hidden");
   $("msgs").classList.remove("hidden");
 
-  chat.messages.push({ role: "user", content: text });
-  appendMsg("user", text);
+  // The staged image rides along with this turn and is cleared from the
+  // composer; it lives on the message from here on.
+  const image = state.attachment?.dataUrl || null;
+  chat.messages.push({ role: "user", content: text, ...(image ? { image } : {}) });
+  appendMsg("user", text, image);
+  clearAttachment();
   touch(chat);
   renderSidebar();
 
@@ -818,7 +850,15 @@ async function send(text) {
     // Each chunk is a delta of the answer — concatenate as they arrive.
     const constraint = activeConstraint();
     if (constraint) log("responseConstraint active");
-    const stream = session.promptStreaming(text, {
+    // A multimodal turn sends the picture and the text together as one
+    // content array; a text turn stays a plain string, exactly as before.
+    let promptInput = text;
+    if (image && settings.provider === "chrome") {
+      const blob = await dataUrlToBlob(image).catch(() => null);
+      if (blob) promptInput = [{ type: "text", value: text }, { type: "image", value: blob }];
+      log("promptStreaming with image");
+    }
+    const stream = session.promptStreaming(promptInput, {
       signal: state.abort.signal,
       ...(constraint ? { responseConstraint: constraint } : {}),
     });
