@@ -280,9 +280,48 @@ function paintStatus(extraDesc) {
 
 function setComposerEnabled(on) {
   $("in-msg").disabled = !on;
-  $("btn-send").disabled = !on || !$("in-msg").value.trim();
+  $("btn-send").disabled = !on || (!$("in-msg").value.trim() && !state.attachment);
   $("in-msg").placeholder = on ? t("composer.placeholder") : t("composer.blocked");
   paintMic();
+  paintAttach();
+}
+
+/* ══ Attachment (image input) ══════════════════════════════════ */
+/** Re-checks whether the active engine can take images and shows or hides the
+    paperclip accordingly. WebLLM's chat models here are text-only, so the
+    button belongs to the Prompt API path alone. */
+async function refreshImageCapability() {
+  state.canImage = settings.provider === "chrome"
+    && state.availability === "available"
+    && await PROVIDERS.chrome.imageSupported();
+  paintAttach();
+}
+
+function paintAttach() {
+  $("btn-attach").classList.toggle("hidden", !state.canImage || state.availability !== "available");
+  $("attach").classList.toggle("hidden", !state.attachment);
+  if (state.attachment) $("attach-img").src = state.attachment.dataUrl;
+}
+
+async function stageImage(file) {
+  if (!file || !file.type.startsWith("image/")) { toast(t("mm.notImage")); return; }
+  // Kept small: a big picture bloats IndexedDB and the context alike.
+  if (file.size > 6 * 1024 * 1024) { toast(t("mm.tooBig")); return; }
+  try {
+    state.attachment = { dataUrl: await fileToDataUrl(file) };
+    paintAttach();
+    $("btn-send").disabled = state.availability !== "available";
+    $("in-msg").focus();
+  } catch (err) {
+    log("attach failed: " + err.message);
+  }
+}
+
+function clearAttachment() {
+  state.attachment = null;
+  $("in-file").value = "";
+  paintAttach();
+  if (!$("in-msg").value.trim()) $("btn-send").disabled = true;
 }
 
 /* ══ Incompatibility modal ═════════════════════════════════════ */
@@ -406,6 +445,7 @@ async function refresh() {
   // availability() is what pulls the WebLLM module in, so by here the cache
   // can finally be inspected for free.
   await refreshCache();
+  await refreshImageCapability();
 }
 
 function applyParamLimits(p) {
@@ -799,7 +839,9 @@ async function notifyAnswer(text) {
 /* ══ Sending ═══════════════════════════════════════════════════ */
 async function send(text) {
   text = text.trim();
-  if (!text || state.busy || state.availability !== "available") return;
+  // An image on its own is a valid turn ("what is this?"), so the guard lets
+  // an empty line through when something is attached.
+  if ((!text && !state.attachment) || state.busy || state.availability !== "available") return;
 
   offerNotifications();    // a toast, not the browser prompt — see below
 
@@ -812,7 +854,10 @@ async function send(text) {
   // Summarizer replaces it with a real title, when the browser has one.
   const firstTurn = chat.messages.length === 0;
   if (firstTurn) {
-    chat.title = text.length > 42 ? text.slice(0, 42).trim() + "…" : text;
+    // An image-only opening line has no text to name the chat from until the
+    // Summarizer runs, so a placeholder stands in meanwhile.
+    chat.title = text ? (text.length > 42 ? text.slice(0, 42).trim() + "…" : text)
+      : t("mm.imageChat");
     $("chat-title").textContent = chat.title;
     go(`/chat/${chat.id}`, true);
   }
@@ -1375,7 +1420,7 @@ function paintMic() {
 function setComposerText(text) {
   $("in-msg").value = text;
   autoGrow();
-  if (!state.busy) $("btn-send").disabled = !text.trim() || state.availability !== "available";
+  if (!state.busy) $("btn-send").disabled = (!text.trim() && !state.attachment) || state.availability !== "available";
 }
 
 /** Resolves once the language pack is on disk, false if it can never be. */
@@ -1605,7 +1650,7 @@ $("btn-search-clear").addEventListener("click", () => {
 
 $("in-msg").addEventListener("input", () => {
   autoGrow();
-  if (!state.busy) $("btn-send").disabled = !$("in-msg").value.trim() || state.availability !== "available";
+  if (!state.busy) $("btn-send").disabled = (!$("in-msg").value.trim() && !state.attachment) || state.availability !== "available";
 });
 $("in-msg").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("composer").requestSubmit(); }
@@ -1618,6 +1663,15 @@ $("composer").addEventListener("submit", (e) => {
 });
 
 $("btn-mic").addEventListener("click", () => (dict.live ? stopDictation() : startDictation()));
+
+$("btn-attach").addEventListener("click", () => $("in-file").click());
+$("in-file").addEventListener("change", (e) => { const f = e.target.files?.[0]; if (f) stageImage(f); });
+$("attach-remove").addEventListener("click", clearAttachment);
+// Paste an image straight into the composer, the way chat apps do.
+$("in-msg").addEventListener("paste", (e) => {
+  const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/"));
+  if (item) { e.preventDefault(); stageImage(item.getAsFile()); }
+});
 
 // Suggestion cards carry a translation key, so their prompt follows the language.
 document.querySelectorAll("[data-sugg]").forEach((b) => {
