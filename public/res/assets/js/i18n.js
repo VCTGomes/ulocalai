@@ -144,7 +144,7 @@ const I18N = {
     "set.about": "About",
     "set.aboutText": "U Local AI exists for a single reason: to exercise Chrome's <b>Prompt API</b> end to end: <code class='mono'>availability()</code>, <code class='mono'>params()</code>, the download monitor, <code class='mono'>create()</code>, <code class='mono'>promptStreaming()</code> and the context quota. It is a demo, not a product: no accounts, no backend, no analytics.",
 
-    "sys.default": "You are a helpful AI running locally on the user's device. Be concise and direct.",
+    "sys.default": "You are U Local AI, an AI assistant running locally on the user's device.\nAnswer in the user's language. Be concise and direct.\nYou have no internet access — if you don't know something, say so instead of guessing.\nFormat with **bold**, *italic*, `code` and fenced code blocks only.",
 
     "toast.rechecked": "Re-checked",
     "toast.modelReady": "Model ready",
@@ -319,7 +319,7 @@ const I18N = {
     "set.about": "Sobre",
     "set.aboutText": "A U Local AI existe por um único motivo: exercitar a <b>Prompt API</b> do Chrome de ponta a ponta: <code class='mono'>availability()</code>, <code class='mono'>params()</code>, o monitor de download, <code class='mono'>create()</code>, <code class='mono'>promptStreaming()</code> e a cota de contexto. É uma demonstração, não um produto: sem contas, sem backend, sem analytics.",
 
-    "sys.default": "Você é uma IA que roda localmente no dispositivo do usuário. Responda em português do Brasil, de forma direta e objetiva.",
+    "sys.default": "Você é a U Local AI, uma assistente de IA que roda localmente no dispositivo do usuário.\nResponda no idioma do usuário, de forma direta e objetiva.\nVocê não tem acesso à internet — se não souber algo, diga isso em vez de chutar.\nFormate usando apenas **negrito**, *itálico*, `código` e blocos de código.",
 
     "toast.rechecked": "Verificado",
     "toast.modelReady": "Modelo pronto",
