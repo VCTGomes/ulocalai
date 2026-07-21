@@ -59,10 +59,11 @@ const chromeProvider = {
   },
 
   /** The Prompt API's own session already implements the contract. */
-  createSession({ temperature, topK, system, history, onProgress }) {
+  createSession({ temperature, topK, system, history, onProgress, signal }) {
     return self.LanguageModel.create({
       temperature,
       topK,
+      signal,
       initialPrompts: [{ role: "system", content: system }, ...history],
       monitor(m) {
         m.addEventListener("downloadprogress", (e) => onProgress(e.loaded));
@@ -84,6 +85,7 @@ const webllmProvider = {
   mod: null,          // the imported module, once it has been pulled
   engine: null,       // the live MLC engine, once a model is loaded
   engineModel: null,  // which model that engine holds
+  worker: null,       // the worker it lives in, when it got one
 
   checks() {
     return { webgpu: "gpu" in navigator, secure: window.isSecureContext };
@@ -122,13 +124,13 @@ const webllmProvider = {
   /** WebLLM's temperature is unbounded in practice; 2 matches the slider. */
   async params() { return { maxTemperature: 2, maxTopK: null }; },
 
-  async createSession({ temperature, system, history, onProgress }) {
+  async createSession({ temperature, system, history, onProgress, signal }) {
     const webllm = await this.load();
     const model = currentWebllmModel();
 
     if (!this.engine || this.engineModel !== model) {
       await this.disposeEngine();
-      this.engine = await createEngine(webllm, model, onProgress);
+      this.engine = await createEngine(webllm, model, onProgress, signal, this);
       this.engineModel = model;
     }
 
@@ -143,11 +145,19 @@ const webllmProvider = {
   /** Frees the GPU buffers. The downloaded weights stay in the browser cache. */
   async disposeEngine() {
     const e = this.engine;
+    const w = this.worker;
     this.engine = null;
     this.engineModel = null;
-    if (!e) return;
-    try { await e.unload(); } catch { /* already gone */ }
+    this.worker = null;
+    if (e) { try { await e.unload(); } catch { /* already gone */ } }
+    if (w) w.terminate();
   },
+
+  /** True when a download in flight can actually be stopped, rather than just
+      stopped being waited for. Only the worker path can: terminating it kills
+      the fetch outright. On the main-thread fallback the bytes keep arriving
+      whatever the UI says, so the button that offers it hides itself. */
+  canCancelDownload() { return !!this.worker; },
 };
 
 /** Reads the model the user picked; app.js owns the setting. */
@@ -160,15 +170,45 @@ function currentWebllmModel() {
     supposed to be driving. A worker needs a module script of our own plus a
     working import from the CDN inside it, so failure falls back to the main
     thread rather than to nothing. */
-async function createEngine(webllm, model, onProgress) {
+async function createEngine(webllm, model, onProgress, signal, provider) {
   const opts = { initProgressCallback: (r) => onProgress(r.progress ?? 0, r.text) };
   try {
     const worker = new Worker("/res/assets/js/webllm-worker.js", { type: "module" });
-    return await webllm.CreateWebWorkerMLCEngine(worker, model, opts);
+    provider.worker = worker;
+    // WebLLM exposes no abort for a load in progress, but killing the worker
+    // takes the whole fetch down with it. The race is what makes that visible
+    // to the caller: a terminated worker simply stops answering, so awaiting
+    // the creation promise on its own would hang forever.
+    try {
+      return await Promise.race([
+        webllm.CreateWebWorkerMLCEngine(worker, model, opts),
+        abortSignalPromise(signal),
+      ]);
+    } catch (err) {
+      worker.terminate();
+      provider.worker = null;
+      throw err;
+    }
   } catch (err) {
+    if (err.name === "AbortError") throw err;
+    // No worker to terminate on this path, so the download cannot be stopped
+    // once started — canCancelDownload() reports that honestly.
     if (typeof log === "function") log("webllm worker unavailable, using the main thread: " + err.message);
-    return await webllm.CreateMLCEngine(model, opts);
+    return await Promise.race([
+      webllm.CreateMLCEngine(model, opts),
+      abortSignalPromise(signal),
+    ]);
   }
+}
+
+/** A promise that only ever rejects, when the signal aborts. Without a signal
+    it never settles, so it is inert inside a Promise.race. */
+function abortSignalPromise(signal) {
+  return new Promise((_, reject) => {
+    if (!signal) return;
+    if (signal.aborted) return reject(new DOMException("Download cancelled", "AbortError"));
+    signal.addEventListener("abort", () => reject(new DOMException("Download cancelled", "AbortError")), { once: true });
+  });
 }
 
 /** The model's context window, when the prebuilt config declares one. */

@@ -290,7 +290,14 @@ mark{background:var(--rmf-select-fill);color:inherit;border-radius:3px;padding:0
 .dl{display:flex;flex-direction:column;gap:7px}
 .dl-bar{height:8px;border-radius:var(--rmf-radius-full);overflow:hidden;background:var(--md-sys-color-surface-container-highest)}
 .dl-fill{height:100%;width:0%;border-radius:var(--rmf-radius-full);background:var(--md-sys-color-primary);transition:width .3s ease}
-.dl-meta{display:flex;justify-content:space-between;font-size:.72rem;color:var(--md-sys-color-on-surface-variant)}
+.dl-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.72rem;color:var(--md-sys-color-on-surface-variant)}
+.dl-meta__end{display:inline-flex;align-items:center;gap:10px;flex:0 0 auto}
+.dl-cancel{
+  border:none;background:transparent;cursor:pointer;padding:2px 6px;border-radius:var(--rmf-radius-sm);
+  font-size:.72rem;font-weight:600;color:var(--md-sys-color-error);transition:background .12s,opacity .12s;
+}
+.dl-cancel:hover:not(:disabled){background:var(--rmf-danger-fill)}
+.dl-cancel:disabled{opacity:.45;cursor:default}
 
 /* Suggestion cards */
 .suggs{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:26px}
@@ -689,7 +696,10 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
               <div class="dl-bar"><div class="dl-fill" id="dl-fill"></div></div>
               <div class="dl-meta">
                 <span id="dl-label"></span>
-                <span class="mono" id="dl-pct">0%</span>
+                <span class="dl-meta__end">
+                  <span class="mono" id="dl-pct">0%</span>
+                  <button class="dl-cancel hidden" id="dl-cancel" type="button" data-i18n="dl.cancel">Cancel</button>
+                </span>
               </div>
             </div>
 
@@ -776,7 +786,10 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
             <div class="dl-bar"><div class="dl-fill" id="dl-ic-fill"></div></div>
             <div class="dl-meta">
               <span id="dl-ic-label"></span>
-              <span class="mono" id="dl-ic-pct">0%</span>
+              <span class="dl-meta__end">
+                <span class="mono" id="dl-ic-pct">0%</span>
+                <button class="dl-cancel hidden" id="dl-ic-cancel" type="button" data-i18n="dl.cancel">Cancel</button>
+              </span>
             </div>
           </div>
 
@@ -861,7 +874,10 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
           <div class="dl-bar"><div class="dl-fill" id="dl-set-fill"></div></div>
           <div class="dl-meta">
             <span id="dl-set-label"></span>
-            <span class="mono" id="dl-set-pct">0%</span>
+            <span class="dl-meta__end">
+              <span class="mono" id="dl-set-pct">0%</span>
+              <button class="dl-cancel hidden" id="dl-set-cancel" type="button" data-i18n="dl.cancel">Cancel</button>
+            </span>
           </div>
         </div>
 

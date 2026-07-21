@@ -32,6 +32,7 @@ const I18N = {
     "setup.tune": "Adjust settings",
     "dl.downloading": "Downloading the model…",
     "dl.finishing": "Finishing up…",
+    "dl.cancel": "Cancel",
 
     "sugg.1": "Explain in three sentences what an on-device AI is.",
     "sugg.1.title": "What is local AI?",
@@ -193,6 +194,7 @@ const I18N = {
 
     "toast.rechecked": "Re-checked",
     "toast.modelReady": "Model ready",
+    "toast.downloadCancelled": "Download cancelled",
     "toast.loadingModel": "Loading the model into the GPU…",
     "toast.sessionDestroyed": "Session destroyed",
     "toast.noSession": "No active session",
@@ -253,6 +255,7 @@ const I18N = {
     "setup.tune": "Configurar ajustes",
     "dl.downloading": "Baixando o modelo…",
     "dl.finishing": "Finalizando…",
+    "dl.cancel": "Cancelar",
 
     "sugg.1": "Explique em três frases o que é uma IA local, que roda no próprio dispositivo.",
     "sugg.1.title": "O que é IA local?",
@@ -414,6 +417,7 @@ const I18N = {
 
     "toast.rechecked": "Verificado",
     "toast.modelReady": "Modelo pronto",
+    "toast.downloadCancelled": "Download cancelado",
     "toast.loadingModel": "Carregando o modelo na GPU…",
     "toast.sessionDestroyed": "Sessão encerrada",
     "toast.noSession": "Nenhuma sessão ativa",
