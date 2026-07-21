@@ -5,7 +5,7 @@
    in the browser — so the cache is what makes it work with the tab offline. */
 "use strict";
 
-const CACHE = "ulocalai-v8";
+const CACHE = "ulocalai-v9";
 
 /* The shell: everything needed to boot with no network at all. */
 const SHELL = [
