@@ -5,7 +5,7 @@
    in the browser — so the cache is what makes it work with the tab offline. */
 "use strict";
 
-const CACHE = "ulocalai-v10";
+const CACHE = "ulocalai-v11";
 
 /* The shell: everything needed to boot with no network at all. */
 const SHELL = [
@@ -17,6 +17,9 @@ const SHELL = [
   "/res/assets/css/rmf.css",
   "/res/assets/js/app.js",
   "/res/assets/js/providers.js",
+  "/translate/",
+  "/translate/index.html",
+  "/res/assets/js/translate.js",
   "/res/assets/js/i18n.js",
   "/res/fonts/fonts.css",
   "/res/fonts/fa/css/all.min.css",
@@ -61,6 +64,17 @@ self.addEventListener("notificationclick", (e) => {
   })());
 });
 
+/* Which shell answers a navigation. The translator is a page of its own, so
+   falling back to the chat's index.html for every navigation would hand the
+   wrong app to anyone opening /translate offline. */
+async function matchShell(req) {
+  if (new URL(req.url).pathname.startsWith("/translate")) {
+    const page = await caches.match("/translate/index.html") || await caches.match("/translate/");
+    if (page) return page;
+  }
+  return (await caches.match("/index.html")) || (await caches.match("/"));
+}
+
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
@@ -81,7 +95,7 @@ self.addEventListener("fetch", (e) => {
       // so a server with no SPA fallback answers 404. The app shell is the
       // correct response for any navigation, whatever the server said.
       if (isNav) {
-        const shell = await caches.match("/index.html") || await caches.match("/");
+        const shell = await matchShell(req);
         if (shell) return shell;
       }
       return fresh;
@@ -89,7 +103,7 @@ self.addEventListener("fetch", (e) => {
       // Offline: a navigation always resolves to the shell, never to a cached
       // copy of some other route's HTML.
       if (isNav) {
-        const shell = await caches.match("/index.html") || await caches.match("/");
+        const shell = await matchShell(req);
         if (shell) return shell;
       }
       const hit = await caches.match(req);

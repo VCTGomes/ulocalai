@@ -102,6 +102,18 @@ body.is-resizing{cursor:col-resize;user-select:none}
 .new-chat:hover{background:var(--md-sys-color-surface-container-high);border-color:var(--md-sys-color-primary)}
 .new-chat i{color:var(--md-sys-color-primary);font-size:.8rem}
 
+/* Section switcher under the brand */
+.sb__nav{display:flex;gap:3px;padding:2px;border-radius:var(--rmf-radius-full);background:var(--md-sys-color-surface-container-high)}
+.sb__nav-item{
+  flex:1;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  height:32px;border-radius:var(--rmf-radius-full);cursor:pointer;text-decoration:none;
+  font-size:.78rem;font-weight:600;color:var(--md-sys-color-on-surface-variant);
+  transition:background .12s,color .12s;
+}
+.sb__nav-item i{font-size:.76rem}
+.sb__nav-item:hover:not(.is-active){color:var(--md-sys-color-on-surface)}
+.sb__nav-item.is-active{background:var(--md-sys-color-surface);color:var(--md-sys-color-primary);cursor:default}
+
 .sb__label{padding:10px 8px 2px;font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--md-sys-color-on-surface-variant)}
 
 /* History search */
@@ -152,6 +164,7 @@ mark{background:var(--rmf-select-fill);color:inherit;border-radius:3px;padding:0
   text-align:left;transition:background .12s;
 }
 .sb__item:hover{background:var(--md-sys-color-surface-container-high)}
+a.sb__item{text-decoration:none}
 .sb__item i{width:16px;text-align:center}
 /* :not(.badge-dot) matters — the status dot is a span too, and flex:1 would
    stretch its 8px circle into an ellipse across the whole row. */
@@ -192,6 +205,7 @@ mark{background:var(--rmf-select-fill);color:inherit;border-radius:3px;padding:0
   transition:background .15s;
 }
 .icon-btn:hover{background:var(--md-sys-color-surface-container-high)}
+a.icon-btn{text-decoration:none}
 
 /* Install PWA — only rendered once the browser fires beforeinstallprompt */
 .install-btn{
@@ -640,6 +654,13 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
       </button>
     </div>
 
+    <!-- The two things this app is, side by side. Chat is where you already
+         are, so it reads as the active one. -->
+    <nav class="sb__nav">
+      <span class="sb__nav-item is-active"><i class="fa-solid fa-comments"></i> <span data-i18n="sb.chat">Chat</span></span>
+      <a class="sb__nav-item" href="/translate/"><i class="fa-solid fa-language"></i> <span data-i18n="sb.translate">Translator</span></a>
+    </nav>
+
     <button class="new-chat" id="btn-new" type="button"><i class="fa-solid fa-plus"></i> <span data-i18n="sb.newChat">New chat</span></button>
 
     <div class="sb__label" data-i18n="sb.history">History</div>
@@ -678,6 +699,9 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
       <button class="install-btn hidden" id="btn-install" type="button">
         <i class="fa-solid fa-download"></i> <span data-i18n="pwa.install">Install app</span>
       </button>
+      <a class="icon-btn" href="/translate/" data-i18n-title="sb.translate" data-i18n-aria="sb.translate">
+        <i class="fa-solid fa-language"></i>
+      </a>
       <button class="icon-btn" id="btn-new-top" type="button" data-i18n-title="sb.newChat" data-i18n-aria="sb.newChat">
         <i class="fa-solid fa-pen-to-square"></i>
       </button>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>U Local AI · Translate</title>
+<meta name="description" content="A translator that runs entirely in your browser, on Chrome's built-in Translator and Language Detector APIs. Text never leaves the device.">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D0E13" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="U Local AI">
+<link rel="canonical" href="https://ulocalai.com/translate/">
+<meta name="robots" content="index, follow">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="U Local AI">
+<meta property="og:url" content="https://ulocalai.com/translate/">
+<meta property="og:title" content="U Local AI · Translate">
+<meta property="og:description" content="A translator that runs entirely in your browser. Text never leaves the device.">
+<meta property="og:image" content="https://ulocalai.com/res/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="U Local AI · Translate">
+<meta name="twitter:description" content="A translator that runs entirely in your browser. Text never leaves the device.">
+<meta name="twitter:image" content="https://ulocalai.com/res/icon-512.png">
+
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="512x512" href="/res/icon-512.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/res/icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/res/favicon-32.png">
+<link rel="apple-touch-icon" href="/res/apple-touch-icon.png">
+
+<link rel="stylesheet" href="/res/fonts/fonts.css">
+<link rel="stylesheet" href="/res/fonts/fa/css/all.min.css">
+<link rel="stylesheet" href="/res/assets/css/rmf.css">
+<style>
+/* ══ U Local AI · Translate — same tokens as the chat ══ */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%}
+body{
+  font-family:var(--md-ref-typeface-plain);
+  background:var(--md-sys-color-background);color:var(--md-sys-color-on-surface);
+  -webkit-font-smoothing:antialiased;
+}
+.hidden{display:none!important}
+button{font:inherit}
+
+.brainmark{
+  display:inline-block;background:currentColor;
+  -webkit-mask:url(/res/icon.svg) center/contain no-repeat;
+          mask:url(/res/icon.svg) center/contain no-repeat;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────── */
+.topbar{
+  display:flex;align-items:center;gap:10px;
+  padding:calc(12px + env(safe-area-inset-top)) 18px 12px;
+  border-bottom:1px solid var(--md-sys-color-outline-variant);
+}
+.topbar__logo{width:30px;height:30px;flex:0 0 auto;display:grid;place-items:center;color:var(--md-sys-color-primary)}
+.topbar__logo .brainmark{width:23px;height:23px}
+.topbar__brand{font-family:var(--md-ref-typeface-brand);font-size:.95rem;font-weight:700;letter-spacing:-.01em;flex:1;min-width:0}
+.topbar__brand small{display:block;font-size:.66rem;font-weight:500;color:var(--md-sys-color-on-surface-variant);letter-spacing:.02em}
+.topbar__link{
+  display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;flex:0 0 auto;cursor:pointer;
+  border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--rmf-radius-full);
+  background:var(--md-sys-color-surface);color:var(--md-sys-color-on-surface);
+  font-size:.8rem;font-weight:600;text-decoration:none;transition:background .15s,border-color .15s;
+}
+.topbar__link:hover{background:var(--md-sys-color-surface-container-high);border-color:var(--md-sys-color-primary)}
+.topbar__link i{font-size:.75rem;color:var(--md-sys-color-primary)}
+@media (max-width:620px){ .topbar__link span{display:none} .topbar__link{padding:0 11px} }
+
+.page{max-width:1000px;margin:0 auto;padding:22px 18px calc(28px + env(safe-area-inset-bottom))}
+.lead{margin:0 0 20px;font-size:.86rem;line-height:1.6;color:var(--md-sys-color-on-surface-variant)}
+.lead b{color:var(--md-sys-color-on-surface);font-weight:600}
+
+/* ── The two panes ───────────────────────────────────────────── */
+.panes{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:stretch}
+@media (max-width:820px){
+  .panes{grid-template-columns:1fr;gap:8px}
+  .swap-wrap{justify-self:center}
+}
+
+.pane{
+  display:flex;flex-direction:column;min-width:0;
+  border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--rmf-radius-lg);
+  background:var(--md-sys-color-surface-container-low);overflow:hidden;
+  transition:border-color .15s;
+}
+.pane:focus-within{border-color:var(--md-sys-color-primary)}
+.pane__head{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+  border-bottom:1px solid var(--md-sys-color-outline-variant);
+}
+.pane__sel{
+  flex:1;min-width:0;height:34px;padding:0 30px 0 10px;font:inherit;font-size:.82rem;font-weight:600;cursor:pointer;
+  border:none;border-radius:var(--rmf-radius-full);appearance:none;
+  background-color:transparent;color:var(--md-sys-color-on-surface);
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;background-size:5px 5px;background-repeat:no-repeat;
+}
+.pane__sel:hover{background-color:var(--md-sys-color-surface-container-high)}
+.pane__sel:focus{outline:none;background-color:var(--md-sys-color-surface-container-high)}
+.pane__detected{font-size:.7rem;color:var(--md-sys-color-on-surface-variant);flex:0 0 auto;padding-right:4px}
+
+.pane__body{position:relative;flex:1;display:flex}
+.pane textarea{
+  width:100%;min-height:210px;resize:vertical;border:none;outline:none;background:none;color:inherit;
+  font:inherit;font-size:1.02rem;line-height:1.6;padding:16px;
+}
+.pane textarea::placeholder{color:var(--md-sys-color-on-surface-variant)}
+.pane__out{
+  width:100%;min-height:210px;padding:16px;font-size:1.02rem;line-height:1.6;
+  white-space:pre-wrap;overflow-wrap:anywhere;
+}
+.pane__out.is-empty{color:var(--md-sys-color-on-surface-variant)}
+.pane__out.is-working{opacity:.55}
+
+.pane__foot{
+  display:flex;align-items:center;gap:2px;padding:6px 8px;min-height:42px;
+  border-top:1px solid var(--md-sys-color-outline-variant);
+}
+.pane__foot .grow{flex:1}
+.tool{
+  height:32px;padding:0 10px;border:none;border-radius:var(--rmf-radius-sm);background:transparent;cursor:pointer;
+  color:var(--md-sys-color-on-surface-variant);font-size:.74rem;display:inline-flex;align-items:center;gap:7px;
+  transition:background .12s,color .12s;
+}
+.tool:hover:not(:disabled){background:var(--md-sys-color-surface-container-high);color:var(--md-sys-color-on-surface)}
+.tool:disabled{opacity:.35;cursor:not-allowed}
+.tool.is-live{color:var(--rmf-danger);background:var(--rmf-danger-fill)}
+.count{font-size:.7rem;color:var(--md-sys-color-on-surface-variant);padding:0 8px}
+.count.is-over{color:var(--md-sys-color-error);font-weight:600}
+
+/* Swap sits between the panes on desktop, above them on mobile */
+.swap-wrap{display:grid;place-items:center;padding:0 2px}
+.swap{
+  width:42px;height:42px;border-radius:50%;cursor:pointer;display:grid;place-items:center;font-size:.9rem;
+  border:1px solid var(--md-sys-color-outline-variant);
+  background:var(--md-sys-color-surface);color:var(--md-sys-color-on-surface-variant);
+  transition:background .15s,color .15s,transform .2s,border-color .15s;
+}
+.swap:hover:not(:disabled){background:var(--md-sys-color-surface-container-high);color:var(--md-sys-color-primary);border-color:var(--md-sys-color-primary)}
+.swap:active:not(:disabled){transform:rotate(180deg)}
+.swap:disabled{opacity:.35;cursor:not-allowed}
+@media (max-width:820px){ .swap:active:not(:disabled){transform:rotate(90deg)} }
+
+/* ── Status strip: pack downloads and failures ───────────────── */
+.strip{
+  display:flex;align-items:center;gap:12px;margin-top:14px;padding:13px 15px;
+  border-radius:var(--rmf-radius-md);font-size:.8rem;line-height:1.5;
+  background:var(--rmf-info-fill);color:var(--md-sys-color-on-surface-variant);
+}
+.strip i{color:var(--rmf-info);flex:0 0 auto}
+.strip.is-err{background:var(--rmf-danger-fill)}
+.strip.is-err i{color:var(--rmf-danger)}
+.strip__txt{flex:1;min-width:0}
+.strip__txt b{color:var(--md-sys-color-on-surface);font-weight:600;display:block}
+.dl-bar{height:6px;border-radius:var(--rmf-radius-full);overflow:hidden;background:var(--md-sys-color-surface-container-highest);margin-top:7px}
+.dl-fill{height:100%;width:0%;border-radius:var(--rmf-radius-full);background:var(--md-sys-color-primary);transition:width .3s ease}
+
+/* ── Unsupported ─────────────────────────────────────────────── */
+.blocked{
+  margin-top:20px;padding:26px 22px;text-align:center;
+  border-radius:var(--rmf-radius-lg);border:1px solid var(--md-sys-color-outline-variant);
+  background:var(--md-sys-color-surface-container-low);
+}
+.blocked__ic{
+  width:66px;height:66px;margin:0 auto 18px;border-radius:21px;display:grid;place-items:center;font-size:1.6rem;
+  background:var(--rmf-danger-fill);color:var(--rmf-danger);
+}
+.blocked h2{font-family:var(--md-ref-typeface-brand);font-size:1.2rem;font-weight:600;letter-spacing:-.02em;margin:0}
+.blocked p{margin:10px auto 0;max-width:32rem;font-size:.85rem;line-height:1.6;color:var(--md-sys-color-on-surface-variant)}
+.blocked code{
+  font-family:ui-monospace,SFMono-Regular,'Roboto Mono',Menlo,monospace;font-size:.92em;
+  padding:.1em .35em;border-radius:5px;background:var(--md-sys-color-surface-container-high);
+}
+
+.note{margin:22px 0 0;font-size:.74rem;line-height:1.6;text-align:center;color:var(--md-sys-color-on-surface-variant)}
+.note a{color:var(--md-sys-color-primary);text-decoration:none}
+
+.topbar__icon{
+  width:38px;height:38px;flex:0 0 auto;border:none;border-radius:50%;background:transparent;
+  color:var(--md-sys-color-on-surface-variant);font-size:.95rem;cursor:pointer;display:grid;place-items:center;
+  transition:background .15s;
+}
+.topbar__icon:hover{background:var(--md-sys-color-surface-container-high)}
+
+.set-sec{display:flex;flex-direction:column;gap:12px}
+.set-sec__title{
+  font-size:.64rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--md-sys-color-on-surface-variant);
+}
+.set-div{height:1px;background:var(--md-sys-color-outline-variant)}
+.seg{display:flex;border:1px solid var(--md-sys-color-outline);border-radius:var(--rmf-radius-full);overflow:hidden}
+.seg button{
+  flex:1;height:36px;border:none;background:transparent;cursor:pointer;font-size:.78rem;
+  color:var(--md-sys-color-on-surface-variant);display:inline-flex;align-items:center;justify-content:center;gap:6px;
+}
+.seg button + button{border-left:1px solid var(--md-sys-color-outline)}
+.seg button.is-active{background:var(--rmf-select-fill);color:var(--md-sys-color-primary);font-weight:600}
+select.nv-input{height:42px;padding:0 34px 0 12px;font:inherit;font-size:.86rem;cursor:pointer;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+.abt-tile{
+  display:flex;align-items:center;gap:12px;padding:13px 14px;cursor:pointer;
+  border-radius:var(--rmf-radius-md);background:var(--md-sys-color-surface-container);
+  color:var(--md-sys-color-on-surface);font-size:.85rem;transition:background .12s;
+  border:none;width:100%;text-align:left;text-decoration:none;
+}
+.abt-tile:hover{background:var(--md-sys-color-surface-container-high)}
+.abt-tile > i:first-child{color:var(--md-sys-color-primary);width:16px;text-align:center;font-size:.86rem}
+.abt-tile__t{flex:1;min-width:0}
+.abt-tile__chev{font-size:.7rem;color:var(--md-sys-color-on-surface-variant)}
+
+.toast{
+  position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,14px);
+  z-index:3000;padding:11px 18px;border-radius:var(--rmf-radius-full);font-size:.82rem;
+  background:var(--md-sys-color-inverse-surface);color:var(--md-sys-color-inverse-on-surface);
+  box-shadow:var(--rmf-elev-2);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+}
+.toast.is-on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__logo"><span class="brainmark"></span></div>
+  <div class="topbar__brand">U Local AI<small data-i18n="tr.brandSub">Translator · on-device</small></div>
+  <button class="topbar__icon" id="btn-settings" type="button" data-i18n-title="sb.settings" data-i18n-aria="sb.settings">
+    <i class="fa-solid fa-sliders"></i>
+  </button>
+  <a class="topbar__link" href="/">
+    <i class="fa-solid fa-comments"></i> <span data-i18n="tr.backToChat">Chat</span>
+  </a>
+</header>
+
+<main class="page">
+  <p class="lead" data-i18n-html="tr.lead"></p>
+
+  <!-- Shown instead of the panes when the browser has no Translator API -->
+  <section class="blocked hidden" id="blocked">
+    <div class="blocked__ic"><i class="fa-solid fa-language"></i></div>
+    <h2 data-i18n="tr.blocked.title">This browser can't translate on-device</h2>
+    <p data-i18n-html="tr.blocked.lead"></p>
+  </section>
+
+  <section id="ui">
+    <div class="panes">
+      <!-- Source -->
+      <div class="pane">
+        <div class="pane__head">
+          <select class="pane__sel" id="src-lang" data-i18n-aria="tr.a11y.srcLang"></select>
+          <span class="pane__detected" id="detected"></span>
+        </div>
+        <div class="pane__body">
+          <textarea id="src-text" rows="8" data-i18n-ph="tr.placeholder" autofocus></textarea>
+        </div>
+        <div class="pane__foot">
+          <button class="tool" id="btn-mic" type="button"><i class="fa-solid fa-microphone"></i></button>
+          <button class="tool" id="btn-clear" type="button">
+            <i class="fa-solid fa-xmark"></i> <span data-i18n="tr.clear">Clear</span>
+          </button>
+          <span class="grow"></span>
+          <span class="count" id="count">0</span>
+        </div>
+      </div>
+
+      <div class="swap-wrap">
+        <button class="swap" id="btn-swap" type="button" data-i18n-title="tr.swap" data-i18n-aria="tr.swap">
+          <i class="fa-solid fa-right-left"></i>
+        </button>
+      </div>
+
+      <!-- Target -->
+      <div class="pane">
+        <div class="pane__head">
+          <select class="pane__sel" id="dst-lang" data-i18n-aria="tr.a11y.dstLang"></select>
+        </div>
+        <div class="pane__body">
+          <div class="pane__out is-empty" id="out" aria-live="polite"></div>
+        </div>
+        <div class="pane__foot">
+          <button class="tool" id="btn-speak" type="button" disabled>
+            <i class="fa-solid fa-volume-high"></i> <span data-i18n="tr.speak">Listen</span>
+          </button>
+          <button class="tool" id="btn-copy" type="button" disabled>
+            <i class="fa-regular fa-copy"></i> <span data-i18n="tr.copy">Copy</span>
+          </button>
+          <span class="grow"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Language-pack download and error reporting -->
+    <div class="strip hidden" id="strip">
+      <i class="fa-solid fa-cloud-arrow-down" id="strip-ic"></i>
+      <div class="strip__txt">
+        <b id="strip-title"></b>
+        <span id="strip-desc"></span>
+        <div class="dl-bar hidden" id="dl"><div class="dl-fill" id="dl-fill"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="note" data-i18n-html="tr.note"></p>
+</main>
+
+<!-- ══ Settings ══
+     Deliberately not a copy of the chat's panel: only the settings that are
+     genuinely global live here, written to the same localStorage key so the
+     chat picks them up. Anything specific to generation stays over there. -->
+<div class="nv-modal hidden" id="modal">
+  <div class="nv-modal__panel">
+    <div class="nv-modal__head">
+      <div class="nv-modal__title"><i class="fa-solid fa-sliders"></i> <span data-i18n="sb.settings">Settings</span></div>
+      <div class="nv-modal__actions">
+        <button class="ibtn" id="btn-modal-close" type="button" data-i18n-aria="a11y.close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+
+    <div class="nv-modal__body">
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.language">Language</div>
+        <div class="seg" id="seg-lang">
+          <button type="button" data-lang=""><i class="fa-solid fa-globe"></i> <span data-i18n="set.auto">Auto</span></button>
+          <button type="button" data-lang="en">English</button>
+          <button type="button" data-lang="pt">Português</button>
+        </div>
+      </div>
+
+      <div class="set-div"></div>
+
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.appearance">Appearance</div>
+        <div class="seg" id="seg-theme">
+          <button type="button" data-theme=""><i class="fa-solid fa-circle-half-stroke"></i> <span data-i18n="set.system">System</span></button>
+          <button type="button" data-theme="light"><i class="fa-solid fa-sun"></i> <span data-i18n="set.light">Light</span></button>
+          <button type="button" data-theme="dark"><i class="fa-solid fa-moon"></i> <span data-i18n="set.dark">Dark</span></button>
+        </div>
+      </div>
+
+      <div class="set-div"></div>
+
+      <!-- Belongs to the chat, but it is a global choice, so it is reachable
+           from here too. The note says plainly where it takes effect. -->
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.engine">Engine</div>
+        <div class="seg" id="seg-engine">
+          <button type="button" data-engine="chrome"><i class="fa-brands fa-chrome"></i> <span data-i18n="engine.chrome">Chrome · Gemini Nano</span></button>
+          <button type="button" data-engine="webllm"><i class="fa-solid fa-microchip"></i> <span data-i18n="engine.webllm">WebLLM · WebGPU</span></button>
+        </div>
+        <div class="nv-field hidden" id="engine-model">
+          <label class="nv-field__label" for="in-model" data-i18n="set.webllmModel">Open model</label>
+          <select class="nv-input" id="in-model"></select>
+        </div>
+        <p class="m3-body-small" style="margin:0" data-i18n="tr.set.engineNote"></p>
+      </div>
+
+      <div class="set-div"></div>
+
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.about">About</div>
+        <a class="abt-tile" href="/">
+          <i class="fa-solid fa-comments"></i>
+          <span class="abt-tile__t" data-i18n="tr.set.full">All settings, in the chat</span>
+          <i class="fa-solid fa-chevron-right abt-tile__chev"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/res/assets/js/i18n.js"></script>
+<!-- For the WebLLM catalogue behind the model picker; defines data only. -->
+<script src="/res/assets/js/providers.js"></script>
+<script src="/res/assets/js/translate.js"></script>
+</body>
+</html>

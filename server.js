@@ -33,12 +33,22 @@ http.createServer((req, res) => {
 
   fs.readFile(file, (err, buf) => {
     if (err) {
-      // SPA routes (/new, /chat/<id>) have no file behind them: anything that
-      // looks like a page request gets the app shell, which then reads the URL.
       if (!path.extname(file)) {
-        fs.readFile(path.join(ROOT, "index.html"), (e2, shell) => {
-          if (e2) { res.writeHead(404, { "Content-Type": "text/plain" }).end("Not found"); return; }
-          res.writeHead(200, { "Content-Type": TYPES[".html"], "Cache-Control": "no-store" }).end(shell);
+        // A real directory with an index.html comes first: /translate is a page
+        // of its own, not an SPA route, and must not be swallowed by the shell
+        // below. (Static hosts resolve this the same way.)
+        fs.readFile(path.join(file, "index.html"), (e1, page) => {
+          if (!e1) {
+            res.writeHead(200, { "Content-Type": TYPES[".html"], "Cache-Control": "no-store" }).end(page);
+            return;
+          }
+          // SPA routes (/new, /chat/<id>) have no file behind them: anything
+          // that looks like a page request gets the app shell, which then
+          // reads the URL.
+          fs.readFile(path.join(ROOT, "index.html"), (e2, shell) => {
+            if (e2) { res.writeHead(404, { "Content-Type": "text/plain" }).end("Not found"); return; }
+            res.writeHead(200, { "Content-Type": TYPES[".html"], "Cache-Control": "no-store" }).end(shell);
+          });
         });
         return;
       }
