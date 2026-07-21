@@ -23,6 +23,8 @@ const settings = (() => {
   catch { return {}; }
 })();
 
+function saveSettings() { localStorage.setItem(LS_SETTINGS, JSON.stringify(settings)); }
+
 let lang = "en";
 function resolveLang() {
   if (settings.lang && I18N[settings.lang]) return settings.lang;
@@ -362,6 +364,78 @@ async function startDictation() {
   dict.rec = rec;
   try { rec.start(); } catch { dict.live = false; paintMic(); }
 }
+
+/* ══ Settings ══════════════════════════════════════════════════
+   Only the genuinely global choices live here; generation parameters stay in
+   the chat, which is the only place they mean anything. Everything written
+   lands in the key the chat reads, and the chat listens for the change. */
+function openModal() {
+  paintSegments();
+  fillEngineModels();
+  $("modal").classList.remove("hidden");
+}
+function closeModal() { $("modal").classList.add("hidden"); }
+
+function paintSegments() {
+  for (const b of $("seg-theme").children) b.classList.toggle("is-active", b.dataset.theme === (settings.theme || ""));
+  for (const b of $("seg-lang").children) b.classList.toggle("is-active", b.dataset.lang === (settings.lang || ""));
+  const engine = settings.provider || "chrome";
+  for (const b of $("seg-engine").children) b.classList.toggle("is-active", b.dataset.engine === engine);
+  $("engine-model").classList.toggle("hidden", engine !== "webllm");
+}
+
+function fillEngineModels() {
+  const sel = $("in-model");
+  if (sel.options.length) { sel.value = settings.webllmModel || WEBLLM_DEFAULT; return; }
+  for (const m of WEBLLM_MODELS) {
+    const o = document.createElement("option");
+    o.value = m.id;
+    o.textContent = `${m.label} · ${m.size}`;
+    sel.appendChild(o);
+  }
+  sel.value = settings.webllmModel || WEBLLM_DEFAULT;
+}
+
+$("btn-settings").addEventListener("click", openModal);
+$("btn-modal-close").addEventListener("click", closeModal);
+$("modal").addEventListener("click", (e) => { if (e.target === $("modal")) closeModal(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
+$("seg-theme").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-theme]");
+  if (!b) return;
+  settings.theme = b.dataset.theme;
+  saveSettings(); applyTheme(); paintSegments();
+});
+
+$("seg-lang").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-lang]");
+  if (!b) return;
+  settings.lang = b.dataset.lang;
+  saveSettings();
+  applyI18n();
+  // Language names and their ordering are in the interface language, so the
+  // pickers have to be rebuilt — keeping the current choices.
+  const src = $("src-lang").value, dst = $("dst-lang").value;
+  fillPickers();
+  $("src-lang").value = src; $("dst-lang").value = dst;
+  paintSegments();
+  translateNow();
+});
+
+$("seg-engine").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-engine]");
+  if (!b) return;
+  settings.provider = b.dataset.engine;
+  saveSettings(); paintSegments();
+  toast(t("tr.set.saved"));
+});
+
+$("in-model").addEventListener("change", () => {
+  settings.webllmModel = $("in-model").value;
+  saveSettings();
+  toast(t("tr.set.saved"));
+});
 
 /* ══ Wiring ════════════════════════════════════════════════════ */
 function paintCount() {

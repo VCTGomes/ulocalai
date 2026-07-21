@@ -239,6 +239,9 @@ const I18N = {
     "about.installed": "installed",
     /* ── Translate page (/translate/) ── */
     "tr.brandSub": "Translator · on-device",
+    "tr.set.engineNote": "This picks the model the chat answers with. Translation always uses Chrome's own translation models, whatever is chosen here.",
+    "tr.set.full": "All settings, in the chat",
+    "tr.set.saved": "Saved — applies in the chat",
     "tr.backToChat": "Chat",
     "tr.lead": "A translator that runs <b>inside your browser</b>, on Chrome's built-in Translator and Language Detector. What you type is never sent anywhere.",
     "tr.blocked.title": "This browser can't translate on-device",
@@ -498,6 +501,9 @@ const I18N = {
     "about.installed": "instalado",
     /* ── Página de tradução (/translate/) ── */
     "tr.brandSub": "Tradutor · no dispositivo",
+    "tr.set.engineNote": "Isto escolhe o modelo com que o chat responde. A tradução sempre usa os modelos de tradução do próprio Chrome, seja qual for a escolha aqui.",
+    "tr.set.full": "Todos os ajustes, no chat",
+    "tr.set.saved": "Salvo — vale no chat",
     "tr.backToChat": "Chat",
     "tr.lead": "Um tradutor que roda <b>dentro do seu navegador</b>, sobre o Translator e o Language Detector embutidos no Chrome. O que você escreve não é enviado a lugar nenhum.",
     "tr.blocked.title": "Este navegador não traduz no dispositivo",
