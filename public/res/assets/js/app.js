@@ -734,8 +734,11 @@ async function send(text) {
   if (!chat) { newChat(); chat = current(); }
 
   // The first user line becomes the conversation title, and the blank /new URL
-  // is replaced by this chat's own address, so a reload lands back on it.
-  if (chat.messages.length === 0) {
+  // is replaced by this chat's own address, so a reload lands back on it. The
+  // truncated line is only a placeholder now: once the answer lands, the
+  // Summarizer replaces it with a real title, when the browser has one.
+  const firstTurn = chat.messages.length === 0;
+  if (firstTurn) {
     chat.title = text.length > 42 ? text.slice(0, 42).trim() + "…" : text;
     $("chat-title").textContent = chat.title;
     go(`/chat/${chat.id}`, true);
@@ -782,6 +785,7 @@ async function send(text) {
     chat.messages.push({ role: "assistant", content: acc });
     log("answer complete");
     notifyAnswer(acc);
+    if (firstTurn) autoTitle(chat, text, acc);
   } catch (err) {
     if (err.name === "AbortError") {
       acc = (acc || "").trim() + " ⏹";
@@ -811,6 +815,71 @@ async function send(text) {
     toggleSend(false);
     updateQuota();
     $("in-msg").focus();
+  }
+}
+
+/* ══ Summaries ═════════════════════════════════════════════════
+   Both jobs run through the Summarizer API when the browser has it, and are
+   plain no-ops when it does not — the truncated first line simply stays. */
+
+/** Replaces the placeholder title with a generated one, once per chat. Never
+    blocks sending: it runs after the answer, and any failure is swallowed so
+    the chat keeps the line it already had. */
+async function autoTitle(chat, question, answer) {
+  if (!summarizer.available()) return;
+  try {
+    // Named from the exchange, not just the question — the answer often makes
+    // the topic clearer than the prompt did.
+    const source = `${question}\n\n${answer}`.slice(0, 4000);
+    const title = await summarizer.title(source);
+    if (!title) return;
+    chat.title = title.length > 60 ? title.slice(0, 60).trim() + "…" : title;
+    if (currentId === chat.id) $("chat-title").textContent = chat.title;
+    putChat(chat);
+    renderSidebar();
+    log("title summarised");
+  } catch (err) {
+    log("auto-title skipped: " + err.message);
+  }
+}
+
+/** The "summarise this conversation" button: a tl;dr posted back into the
+    transcript as an assistant message, so it is copyable and saved like any
+    other. */
+async function summariseChat() {
+  const chat = current();
+  if (!chat || state.busy) return;
+  const turns = chat.messages.filter((m) => m.role === "user" || m.role === "assistant");
+  if (turns.length < 2) { toast(t("toast.tooShort")); return; }
+  if (!summarizer.available()) { toast(t("toast.noSummarizer")); return; }
+
+  state.busy = true;
+  toggleSend(true);
+  const out = appendMsg("assistant", "");
+  out.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+  scrollDown();
+
+  try {
+    const transcript = turns
+      .map((m) => `${m.role === "user" ? t("msg.you") : t("msg.ai")}: ${m.content}`)
+      .join("\n\n");
+    log("summarize(tldr)");
+    const digest = await summarizer.digest(transcript.slice(0, 12000), showProgress);
+    hideProgress();
+    const text = `**${t("summary.heading")}**\n\n${digest}`;
+    out.innerHTML = render(text);
+    chat.messages.push({ role: "assistant", content: text });
+    touch(chat);
+    log("summary complete");
+  } catch (err) {
+    hideProgress();
+    out.closest(".msg").className = "msg msg--err";
+    out.textContent = err.message;
+    log("summary failed: " + err.message);
+  } finally {
+    state.busy = false;
+    toggleSend(false);
+    scrollDown();
   }
 }
 

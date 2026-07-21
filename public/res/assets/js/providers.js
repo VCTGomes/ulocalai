@@ -326,3 +326,53 @@ function webllmSession(engine, { temperature, system, history, quota }) {
 }
 
 const PROVIDERS = { chrome: chromeProvider, webllm: webllmProvider };
+
+/* ══ Summarizer ════════════════════════════════════════════════
+   A sibling of the Prompt API with the same lifecycle. Used for two things:
+   naming a conversation from its content, and the "summarise this chat"
+   button. It is optional everywhere it is called — a browser without it just
+   falls back to the old behaviour, never an error.
+
+   A single instance is reused: create() can trigger a download, so building
+   one per call would be wasteful. Different tasks (a short title vs a longer
+   digest) need different options, so the live one is keyed by its config. */
+const summarizer = {
+  inst: null,
+  key: null,
+
+  available() { return "Summarizer" in self; },
+
+  async get(opts, onProgress) {
+    const key = JSON.stringify(opts);
+    if (this.inst && this.key === key) return this.inst;
+    if (this.inst) { this.inst.destroy?.(); this.inst = null; }
+    this.inst = await Summarizer.create({
+      ...opts,
+      monitor(m) {
+        m.addEventListener("downloadprogress", (e) => onProgress?.(e.loaded));
+      },
+    });
+    this.key = key;
+    return this.inst;
+  },
+
+  /** One short line naming a conversation — the "headline" type with a word
+      cap is as close as the API gets to a title. */
+  async title(text, onProgress) {
+    const s = await this.get(
+      { type: "headline", format: "plain-text", length: "short" },
+      onProgress,
+    );
+    const out = (await s.summarize(text)).trim().replace(/^["']|["']$/g, "");
+    return out.split("\n")[0];
+  },
+
+  /** A tl;dr of the whole transcript, for the button. */
+  async digest(text, onProgress) {
+    const s = await this.get(
+      { type: "tldr", format: "plain-text", length: "medium" },
+      onProgress,
+    );
+    return (await s.summarize(text)).trim();
+  },
+};
