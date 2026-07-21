@@ -1667,6 +1667,34 @@ $("btn-mic").addEventListener("click", () => (dict.live ? stopDictation() : star
 $("btn-attach").addEventListener("click", () => $("in-file").click());
 $("in-file").addEventListener("change", (e) => { const f = e.target.files?.[0]; if (f) stageImage(f); });
 $("attach-remove").addEventListener("click", clearAttachment);
+
+/* Drag-and-drop onto the chat. The overlay is only offered when the engine can
+   actually read images, and a depth counter keeps it from flickering as the
+   drag crosses child elements (each of which fires its own enter/leave). */
+let dragDepth = 0;
+function dragHasFile(e) {
+  return [...(e.dataTransfer?.types || [])].includes("Files");
+}
+$("main").addEventListener("dragenter", (e) => {
+  if (!state.canImage || !dragHasFile(e)) return;
+  e.preventDefault();
+  dragDepth++;
+  $("dropzone").classList.remove("hidden");
+});
+$("main").addEventListener("dragover", (e) => {
+  if (state.canImage && dragHasFile(e)) e.preventDefault();   // allow the drop
+});
+$("main").addEventListener("dragleave", () => {
+  if (dragDepth > 0 && --dragDepth === 0) $("dropzone").classList.add("hidden");
+});
+$("main").addEventListener("drop", (e) => {
+  if (!state.canImage || !dragHasFile(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  $("dropzone").classList.add("hidden");
+  const f = [...(e.dataTransfer.files || [])].find((x) => x.type.startsWith("image/"));
+  if (f) stageImage(f); else toast(t("mm.notImage"));
+});
 // Paste an image straight into the composer, the way chat apps do.
 $("in-msg").addEventListener("paste", (e) => {
   const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/"));
