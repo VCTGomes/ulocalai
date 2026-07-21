@@ -299,6 +299,23 @@ mark{background:var(--rmf-select-fill);color:inherit;border-radius:3px;padding:0
 .dl-cancel:hover:not(:disabled){background:var(--rmf-danger-fill)}
 .dl-cancel:disabled{opacity:.45;cursor:default}
 
+/* Cached weights, one row each */
+.cache-row{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:2px;
+  border-radius:var(--rmf-radius-md);background:var(--md-sys-color-surface-container);font-size:.82rem;
+}
+.cache-row__ic{color:var(--rmf-success);font-size:.76rem;width:14px;text-align:center;flex:0 0 auto}
+.cache-row__t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cache-row__t small{display:block;font-size:.7rem;color:var(--md-sys-color-on-surface-variant)}
+.cache-row__del{
+  flex:0 0 auto;border:none;background:transparent;cursor:pointer;padding:5px 9px;
+  border-radius:var(--rmf-radius-sm);font-size:.72rem;font-weight:600;
+  color:var(--md-sys-color-error);transition:background .12s;
+}
+.cache-row__del:hover:not(:disabled){background:var(--rmf-danger-fill)}
+.cache-row__del:disabled{opacity:.45;cursor:default}
+.cache-empty{padding:12px;font-size:.78rem;line-height:1.5;color:var(--md-sys-color-on-surface-variant)}
+
 /* Suggestion cards */
 .suggs{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:26px}
 .sugg{
@@ -844,6 +861,14 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
           <label class="nv-field__label" for="in-model" data-i18n="set.webllmModel">Open model</label>
           <select class="nv-input" id="in-model"></select>
           <p class="m3-body-small" style="margin:6px 0 0" data-i18n-html="set.webllmModelHint"></p>
+        </div>
+
+        <!-- Weights already on disk. Gigabytes of them, so getting rid of one
+             has to be possible from inside the app that put it there. -->
+        <div class="hidden" id="cache-sec">
+          <div class="abt-label" data-i18n="set.cacheLabel">Downloaded models</div>
+          <div id="cache-list"></div>
+          <p class="m3-body-small" style="margin:8px 0 0" id="cache-total"></p>
         </div>
       </div>
 

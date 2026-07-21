@@ -153,6 +153,30 @@ const webllmProvider = {
     if (w) w.terminate();
   },
 
+  /** Which catalogue models already have their weights on disk.
+      Answering needs the module, so this is only asked once something else has
+      already paid for the import — never on its own account. */
+  async cachedModels() {
+    if (!this.mod) return null;   // unknown, not "none"
+    const hits = await Promise.all(
+      WEBLLM_MODELS.map((m) => this.mod.hasModelInCache(m.id).catch(() => false)),
+    );
+    return new Set(WEBLLM_MODELS.filter((_, i) => hits[i]).map((m) => m.id));
+  },
+
+  /** Drops a model's weights, config and wasm from the browser cache. If it is
+      the one currently loaded, the live engine goes with it — it would
+      otherwise keep answering from GPU memory that nothing can reload. */
+  async deleteModel(id) {
+    const webllm = await this.load();
+    if (this.engineModel === id) await this.disposeEngine();
+    if (typeof webllm.deleteModelAllInfoInCache === "function") {
+      await webllm.deleteModelAllInfoInCache(id);
+    } else {
+      await webllm.deleteModelInCache(id);
+    }
+  },
+
   /** True when a download in flight can actually be stopped, rather than just
       stopped being waited for. Only the worker path can: terminating it kills
       the fetch outright. On the main-thread fallback the bytes keep arriving
