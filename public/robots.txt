@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# SPA routes with no crawlable content of their own — they render the same
+# shell, and conversations are private to the browser that created them.
+Disallow: /chat/
+Disallow: /new
+
+Sitemap: https://ulocalai.com/sitemap.xml
