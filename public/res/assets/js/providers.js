@@ -58,12 +58,28 @@ const chromeProvider = {
     try { return await self.LanguageModel.params(); } catch { return null; }
   },
 
-  /** The Prompt API's own session already implements the contract. */
-  createSession({ temperature, topK, system, history, onProgress, signal }) {
+  _imageSupport: undefined,   // memoised across calls; the answer never changes
+  /** Whether this build can take images as input. Asked by passing the intent
+      to availability() — an image-blind model reports "unavailable" for it. */
+  async imageSupported() {
+    if (this._imageSupport !== undefined) return this._imageSupport;
+    if (!("LanguageModel" in self)) return (this._imageSupport = false);
+    try {
+      const a = await self.LanguageModel.availability({ expectedInputs: [{ type: "image" }] });
+      this._imageSupport = a !== "unavailable" && a !== "no";
+    } catch { this._imageSupport = false; }
+    return this._imageSupport;
+  },
+
+  /** The Prompt API's own session already implements the contract. `multimodal`
+      arms the session for image input; it is only passed when the model was
+      confirmed to support it, since an unsupported expectedInputs throws. */
+  createSession({ temperature, topK, system, history, onProgress, signal, multimodal }) {
     return self.LanguageModel.create({
       temperature,
       topK,
       signal,
+      ...(multimodal ? { expectedInputs: [{ type: "image" }] } : {}),
       initialPrompts: [{ role: "system", content: system }, ...history],
       monitor(m) {
         m.addEventListener("downloadprogress", (e) => onProgress(e.loaded));
@@ -287,7 +303,7 @@ function webllmSession(engine, { temperature, system, history, quota }) {
     addEventListener() {},
     destroy() { engine.interruptGenerate?.(); },
 
-    promptStreaming(text, { signal } = {}) {
+    promptStreaming(text, { signal, responseConstraint } = {}) {
       const session = this;
       messages.push({ role: "user", content: text });
       this.lastCompletionTokens = null;
@@ -304,6 +320,12 @@ function webllmSession(engine, { temperature, system, history, quota }) {
             temperature,
             stream: true,
             stream_options: { include_usage: true },
+            // WebLLM's grammar-constrained decoding. The schema shape is the
+            // same JSON Schema the Prompt API takes, so app.js passes one
+            // object to whichever engine is live.
+            ...(responseConstraint
+              ? { response_format: { type: "json_object", schema: JSON.stringify(responseConstraint) } }
+              : {}),
           });
           for await (const chunk of stream) {
             const delta = chunk.choices?.[0]?.delta?.content;

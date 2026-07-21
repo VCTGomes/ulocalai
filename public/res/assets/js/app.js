@@ -10,6 +10,18 @@ const $ = (id) => document.getElementById(id);
 const LS_CHATS = "miniai.chats";
 const LS_SETTINGS = "miniai.settings";
 
+/* A small, valid schema so the field is never blank the first time it opens
+   and the feature demonstrates itself. */
+const DEFAULT_SCHEMA = JSON.stringify({
+  type: "object",
+  properties: {
+    title: { type: "string" },
+    sentiment: { type: "string", enum: ["positive", "neutral", "negative"] },
+    keywords: { type: "array", items: { type: "string" } },
+  },
+  required: ["title", "sentiment"],
+}, null, 2);
+
 /* ══ Persisted state ═══════════════════════════════════════════ */
 const settings = Object.assign({
   temperature: 1,
@@ -20,6 +32,8 @@ const settings = Object.assign({
   lang: "",       // "" = follow the browser
   provider: "chrome",          // "chrome" (Prompt API) or "webllm" (WebGPU)
   webllmModel: WEBLLM_DEFAULT, // which open model WebLLM should load
+  jsonMode: false,             // constrain answers to jsonSchema
+  jsonSchema: DEFAULT_SCHEMA,  // the JSON Schema text, when jsonMode is on
 }, readJSON(LS_SETTINGS, {}));
 
 /** chats: [{ id, title, updatedAt, messages: [{role:'user'|'assistant'|'error', content}] }] */
@@ -190,6 +204,14 @@ function render(text) {
     .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|\s)\*([^*\n]+)\*/g, "$1<em>$2</em>");
   return out.replace(/ (\d+) /g, (_, i) => blocks[i]);
+}
+
+/** Pretty-prints a JSON answer into a fenced block, so the markdown renderer
+    shows it formatted. If the model broke its own constraint and returned
+    something unparseable, it is left exactly as it came. */
+function prettyJson(text) {
+  try { return "```json\n" + JSON.stringify(JSON.parse(text), null, 2) + "\n```"; }
+  catch { return text; }
 }
 
 /* ══ Model status ══════════════════════════════════════════════ */
@@ -381,9 +403,26 @@ async function ensureSession(signal) {
   if (state.session && state.sessionOf === currentId) return state.session;
   if (state.session) { state.session.destroy(); state.session = null; }
 
-  const history = (current()?.messages || [])
-    .filter((m) => m.role === "user" || m.role === "assistant")
-    .map((m) => ({ role: m.role, content: m.content }));
+  // Past turns that carried an image are replayed as multimodal prompts, so a
+  // follow-up like "what colour is it?" still has the picture in context. The
+  // image is stored as a data URL and turned back into a blob only here.
+  const past = (current()?.messages || [])
+    .filter((m) => m.role === "user" || m.role === "assistant");
+  const anyImage = past.some((m) => m.image);
+  const multimodal = settings.provider === "chrome" && anyImage
+    && await PROVIDERS.chrome.imageSupported();
+
+  const history = [];
+  for (const m of past) {
+    if (multimodal && m.image) {
+      const blob = await dataUrlToBlob(m.image).catch(() => null);
+      history.push(blob
+        ? { role: m.role, content: [{ type: "text", value: m.content }, { type: "image", value: blob }] }
+        : { role: m.role, content: m.content });
+    } else {
+      history.push({ role: m.role, content: m.content });
+    }
+  }
 
   // Loading cached weights onto the GPU takes seconds, and the progress bar
   // lives on the welcome screen, which is gone once a conversation starts —
@@ -400,6 +439,7 @@ async function ensureSession(signal) {
     history,
     onProgress: showProgress,
     signal,
+    multimodal,
   });
   state.sessionOf = currentId;
 
@@ -630,6 +670,11 @@ function renderChat() {
   msgs.innerHTML = "";
   $("chat-title").textContent = c?.title || t("chat.untitled");
 
+  // Summarising needs at least a full exchange and a browser that can do it.
+  const canSummarise = summarizer.available()
+    && (c?.messages.filter((m) => m.role === "user" || m.role === "assistant").length || 0) >= 2;
+  $("btn-summarize").classList.toggle("hidden", !canSummarise);
+
   const empty = !c || c.messages.length === 0;
   $("welcome").classList.toggle("hidden", !empty);
   msgs.classList.toggle("hidden", empty);
@@ -771,7 +816,12 @@ async function send(text) {
     const session = await ensureSession();
     log(`promptStreaming(${text.length} chars)`);
     // Each chunk is a delta of the answer — concatenate as they arrive.
-    const stream = session.promptStreaming(text, { signal: state.abort.signal });
+    const constraint = activeConstraint();
+    if (constraint) log("responseConstraint active");
+    const stream = session.promptStreaming(text, {
+      signal: state.abort.signal,
+      ...(constraint ? { responseConstraint: constraint } : {}),
+    });
     const atBottom = () => { const s = $("scroll"); return s.scrollHeight - s.scrollTop - s.clientHeight < 120; };
     for await (const chunk of stream) {
       const stick = atBottom();
@@ -781,11 +831,14 @@ async function send(text) {
       if (stick) scrollDown(true);
     }
     if (!acc) acc = t("msg.empty");
+    if (constraint) acc = prettyJson(acc);
     out.innerHTML = render(acc);
     chat.messages.push({ role: "assistant", content: acc });
     log("answer complete");
     notifyAnswer(acc);
-    if (firstTurn) autoTitle(chat, text, acc);
+    // A constrained answer is not prose to name a chat from; keep the
+    // truncated first line rather than summarising raw JSON.
+    if (firstTurn && !constraint) autoTitle(chat, text, acc);
   } catch (err) {
     if (err.name === "AbortError") {
       acc = (acc || "").trim() + " ⏹";
@@ -966,6 +1019,7 @@ function openModal() {
   paintSegments();
   paintEngine();
   paintCacheList();
+  paintJson();
   $("modal").classList.remove("hidden");
   closeDrawer();
 }
@@ -1205,6 +1259,39 @@ function paintSegments() {
   for (const b of $("seg-lang").children) b.classList.toggle("is-active", b.dataset.lang === settings.lang);
 }
 
+/* ══ Structured output ═════════════════════════════════════════
+   The one schema drives both engines: responseConstraint on the Prompt API,
+   response_format on WebLLM. Held as text so a half-typed schema is not lost
+   on every keystroke; parsed only when it is actually used or shown. */
+function parsedSchema() {
+  try {
+    const o = JSON.parse(settings.jsonSchema);
+    return (o && typeof o === "object") ? o : null;
+  } catch { return null; }
+}
+
+/** The live constraint for the next message, or null when the feature is off
+    or the schema does not parse — a broken schema silently falls back to a
+    normal answer rather than blocking the send. */
+function activeConstraint() {
+  return settings.jsonMode ? parsedSchema() : null;
+}
+
+function paintJson() {
+  $("in-json").checked = settings.jsonMode;
+  $("json-field").classList.toggle("hidden", !settings.jsonMode);
+  $("in-schema").value = settings.jsonSchema;
+  validateSchema();
+}
+
+function validateSchema() {
+  const el = $("json-status");
+  if (!settings.jsonMode) { el.textContent = ""; el.className = "m3-body-small"; return; }
+  const ok = !!parsedSchema();
+  el.textContent = ok ? t("set.jsonValid") : t("set.jsonInvalid");
+  el.className = "m3-body-small " + (ok ? "is-ok" : "is-err");
+}
+
 /* ══ Composer sizing ═══════════════════════════════════════════ */
 function autoGrow() {
   const el = $("in-msg");
@@ -1334,6 +1421,7 @@ $("btn-sb-close").addEventListener("click", closeDrawer);
 $("sb-scrim").addEventListener("click", closeDrawer);
 $("btn-new").addEventListener("click", newChat);
 $("btn-new-top").addEventListener("click", newChat);
+$("btn-summarize").addEventListener("click", summariseChat);
 
 $("btn-settings").addEventListener("click", openModal);
 $("btn-settings-sb").addEventListener("click", openModal);
@@ -1409,6 +1497,18 @@ $("in-temp").addEventListener("input", syncLabels);
 $("in-topk").addEventListener("input", syncLabels);
 $("in-temp").addEventListener("change", () => { settings.temperature = Number($("in-temp").value); saveSettings(); invalidateSession(); });
 $("in-topk").addEventListener("change", () => { settings.topK = Number($("in-topk").value); saveSettings(); invalidateSession(); });
+$("in-json").addEventListener("change", () => {
+  settings.jsonMode = $("in-json").checked;
+  saveSettings();
+  $("json-field").classList.toggle("hidden", !settings.jsonMode);
+  validateSchema();
+});
+$("in-schema").addEventListener("input", () => {
+  settings.jsonSchema = $("in-schema").value;
+  saveSettings();
+  validateSchema();
+});
+
 $("in-system").addEventListener("change", () => {
   const v = $("in-system").value.trim();
   // Matching the language default means "not customised", so switching the
