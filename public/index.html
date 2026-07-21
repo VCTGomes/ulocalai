@@ -367,6 +367,9 @@ mark{background:var(--rmf-select-fill);color:inherit;border-radius:3px;padding:0
 .set-row{display:flex;gap:8px;flex-wrap:wrap}
 .set-row .nv-btn{flex:1;min-width:140px}
 textarea.nv-input{min-height:76px;resize:vertical;line-height:1.5;font:inherit;font-size:.86rem}
+select.nv-input{height:42px;padding:0 34px 0 12px;font:inherit;font-size:.86rem;cursor:pointer;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;background-size:5px 5px;background-repeat:no-repeat}
 .evlog{
   max-height:150px;overflow-y:auto;margin:0;padding:10px 12px;border-radius:var(--rmf-radius-md);
   background:var(--md-sys-color-surface-container);font-size:.7rem;line-height:1.65;
@@ -390,6 +393,8 @@ textarea.nv-input{min-height:76px;resize:vertical;line-height:1.5;font:inherit;f
   width:76px;height:76px;margin:0 auto 20px;border-radius:24px;display:grid;place-items:center;font-size:1.9rem;
   background:var(--rmf-danger-fill);color:var(--rmf-danger);
 }
+/* Not a failure when there is something to offer — see paintIncompat. */
+.incompat__ic.is-offer{background:var(--rmf-select-fill);color:var(--md-sys-color-primary)}
 .incompat h2{font-family:var(--md-ref-typeface-brand);font-size:1.4rem;font-weight:600;letter-spacing:-.02em;margin:0}
 .incompat > p{margin:10px auto 0;max-width:30rem;font-size:.88rem;line-height:1.6;color:var(--md-sys-color-on-surface-variant)}
 .reqs{
@@ -411,6 +416,37 @@ textarea.nv-input{min-height:76px;resize:vertical;line-height:1.5;font:inherit;f
   font-family:ui-monospace,SFMono-Regular,'Roboto Mono',Menlo,monospace;font-size:.94em;
   padding:.1em .35em;border-radius:5px;background:var(--md-sys-color-surface-container-high);
 }
+/* The offer: the one part of this modal that is not bad news, so it is the
+   only thing here painted in the primary colour. */
+.offer{
+  margin-top:22px;padding:16px;text-align:left;display:flex;flex-direction:column;gap:13px;
+  border-radius:var(--rmf-radius-lg);border:1px solid var(--md-sys-color-primary);
+  background:var(--rmf-select-fill);
+}
+.offer__head{display:flex;align-items:flex-start;gap:13px}
+.offer__ic{
+  width:40px;height:40px;flex:0 0 auto;border-radius:13px;display:grid;place-items:center;font-size:.95rem;
+  background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary);
+}
+.offer__txt{flex:1;min-width:0}
+.offer__txt strong{display:block;font-size:.92rem;font-weight:700;color:var(--md-sys-color-on-surface)}
+.offer__txt span{display:block;margin-top:3px;font-size:.8rem;line-height:1.5;color:var(--md-sys-color-on-surface-variant)}
+.offer__note{margin:0;font-size:.72rem;line-height:1.5;color:var(--md-sys-color-on-surface-variant)}
+.offer .nv-field{margin:0}
+
+/* The diagnosis is still here, just no longer the headline. */
+.ic-details{margin-top:18px;text-align:left}
+.ic-details summary{
+  cursor:pointer;padding:9px 12px;border-radius:var(--rmf-radius-md);list-style:none;
+  font-size:.78rem;font-weight:600;color:var(--md-sys-color-on-surface-variant);
+  display:flex;align-items:center;gap:8px;transition:background .12s;
+}
+.ic-details summary:hover{background:var(--md-sys-color-surface-container-high)}
+.ic-details summary::-webkit-details-marker{display:none}
+.ic-details summary::before{content:"\f078";font-family:"Font Awesome 7 Free";font-weight:900;font-size:.6rem;transition:transform .15s}
+.ic-details[open] summary::before{transform:rotate(180deg)}
+.ic-details .reqs{margin-top:8px}
+
 .incompat__foot{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px}
 .incompat__foot .nv-btn{flex:1;min-width:150px}
 .incompat__note{margin:16px 0 0;font-size:.72rem;line-height:1.5;color:var(--md-sys-color-on-surface-variant)}
@@ -633,10 +669,10 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
         <section class="welcome" id="welcome">
           <div class="welcome__logo"><span class="brainmark"></span></div>
           <h2 data-i18n="welcome.title">Your AI, on your machine</h2>
-          <p data-i18n="welcome.lead">This chat runs on Chrome's built-in model. Prompts never leave the device and the history lives in this browser only.</p>
+          <p data-i18n="welcome.lead">This chat runs on a model inside your browser. Prompts never leave the device and the history lives in this browser only.</p>
           <p class="purpose">
             <i class="fa-solid fa-flask"></i>
-            <span data-i18n-html="welcome.purpose">A demo built to exercise the <b>Prompt API</b>, nothing more.</span>
+            <span data-i18n-html="welcome.purpose">A demo built to exercise the <b>Prompt API</b> and <b>WebLLM</b>, nothing more.</span>
           </p>
 
           <!-- Model setup card -->
@@ -703,7 +739,7 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
           <i class="fa-solid fa-arrow-up"></i>
         </button>
       </form>
-      <p class="composer-hint" data-i18n="composer.hint">A Prompt API testbed that runs entirely in your browser. Nothing is sent to a server.</p>
+      <p class="composer-hint" data-i18n="composer.hint">An on-device AI testbed that runs entirely in your browser. Your prompts are never sent to a server.</p>
     </div>
   </div>
 </div>
@@ -713,21 +749,57 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
   <div class="nv-modal__panel">
     <div class="nv-modal__body" style="padding:0">
       <div class="incompat">
-        <div class="incompat__ic"><i class="fa-solid fa-plug-circle-xmark"></i></div>
+        <div class="incompat__ic" id="ic-ic"><i class="fa-solid fa-plug-circle-xmark"></i></div>
         <h2 id="ic-title">…</h2>
         <p id="ic-lead"></p>
 
-        <div class="reqs" id="ic-reqs"></div>
+        <!-- The way out, when there is one. This engine failing does not mean
+             the machine can't run a model, and the offer to download one is
+             the whole point of the modal in that case — so it leads, and the
+             diagnosis of what failed folds away underneath it. -->
+        <div class="offer hidden" id="ic-offer">
+          <div class="offer__head">
+            <div class="offer__ic"><i class="fa-solid fa-cloud-arrow-down"></i></div>
+            <div class="offer__txt">
+              <strong id="ic-offer-title"></strong>
+              <span id="ic-offer-lead"></span>
+            </div>
+          </div>
+
+          <!-- Picking the model here saves a trip through the settings modal. -->
+          <div class="nv-field hidden" id="ic-model-field">
+            <label class="nv-field__label" for="ic-model" data-i18n="set.webllmModel">Open model</label>
+            <select class="nv-input" id="ic-model"></select>
+          </div>
+
+          <div class="dl hidden" id="dl-ic">
+            <div class="dl-bar"><div class="dl-fill" id="dl-ic-fill"></div></div>
+            <div class="dl-meta">
+              <span id="dl-ic-label"></span>
+              <span class="mono" id="dl-ic-pct">0%</span>
+            </div>
+          </div>
+
+          <button class="nv-btn nv-btn--filled" id="ic-go" type="button">
+            <i class="fa-solid fa-download"></i> <span id="ic-go-label"></span>
+          </button>
+          <p class="offer__note" id="ic-offer-note"></p>
+        </div>
+
+        <details class="ic-details" id="ic-details">
+          <summary id="ic-details-label"></summary>
+          <div class="reqs" id="ic-reqs"></div>
+        </details>
 
         <div class="incompat__foot">
-          <button class="nv-btn nv-btn--filled" id="ic-retry" type="button">
+          <button class="nv-btn nv-btn--tonal" id="ic-retry" type="button">
             <i class="fa-solid fa-rotate"></i> <span data-i18n="incompat.retry">Check again</span>
           </button>
           <button class="nv-btn nv-btn--outline" id="ic-dismiss" type="button">
             <i class="fa-solid fa-eye"></i> <span data-i18n="incompat.dismiss">Look around anyway</span>
           </button>
         </div>
-        <p class="incompat__note" data-i18n-html="incompat.note"></p>
+        <p class="incompat__note" id="ic-note"></p>
       </div>
     </div>
   </div>
@@ -745,6 +817,25 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
 
     <div class="nv-modal__body">
 
+      <!-- Engine -->
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.engine">Engine</div>
+        <div class="seg" id="seg-engine">
+          <button type="button" data-engine="chrome"><i class="fa-brands fa-chrome"></i> <span data-i18n="engine.chrome">Chrome · Gemini Nano</span></button>
+          <button type="button" data-engine="webllm"><i class="fa-solid fa-microchip"></i> <span data-i18n="engine.webllm">WebLLM · WebGPU</span></button>
+        </div>
+        <p class="m3-body-small" style="margin:0" data-i18n-html="set.engineHint"></p>
+
+        <!-- Only WebLLM has a model to pick; the Prompt API gives you Nano. -->
+        <div class="nv-field hidden" id="engine-model">
+          <label class="nv-field__label" for="in-model" data-i18n="set.webllmModel">Open model</label>
+          <select class="nv-input" id="in-model"></select>
+          <p class="m3-body-small" style="margin:6px 0 0" data-i18n-html="set.webllmModelHint"></p>
+        </div>
+      </div>
+
+      <div class="set-div"></div>
+
       <!-- Model -->
       <div class="set-sec">
         <div class="set-sec__title" data-i18n="set.model">Model</div>
@@ -756,14 +847,31 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
           </div>
         </div>
         <dl class="kv">
+          <div><dt data-i18n="kv.engine">Engine</dt><dd id="kv-engine">-</dd></div>
           <div><dt data-i18n="kv.avail">Availability</dt><dd id="kv-avail">-</dd></div>
           <div><dt data-i18n="kv.session">Session</dt><dd id="kv-session">-</dd></div>
           <div><dt data-i18n="kv.quota">Context used</dt><dd id="kv-quota" class="mono">-</dd></div>
           <div><dt data-i18n="kv.maxtemp">Max temperature</dt><dd id="kv-maxtemp" class="mono">-</dd></div>
-          <div><dt data-i18n="kv.maxtopk">Max top-K</dt><dd id="kv-maxtopk" class="mono">-</dd></div>
+          <div id="kv-box-maxtopk"><dt data-i18n="kv.maxtopk">Max top-K</dt><dd id="kv-maxtopk" class="mono">-</dd></div>
           <div><dt data-i18n="kv.runs">Runs</dt><dd data-i18n="kv.runsVal">on-device</dd></div>
         </dl>
+        <!-- Mirrors the welcome card's progress bar, for a download started
+             from in here. -->
+        <div class="dl hidden" id="dl-set">
+          <div class="dl-bar"><div class="dl-fill" id="dl-set-fill"></div></div>
+          <div class="dl-meta">
+            <span id="dl-set-label"></span>
+            <span class="mono" id="dl-set-pct">0%</span>
+          </div>
+        </div>
+
         <div class="set-row">
+          <!-- Same action as the one on the welcome card: switching engine
+               happens in here, so the download has to be reachable from here
+               too, without closing the modal to hunt for a button. -->
+          <button class="nv-btn nv-btn--filled" id="btn-download-set" type="button">
+            <i class="fa-solid fa-cloud-arrow-down"></i> <span data-i18n="setup.download">Download model</span>
+          </button>
           <button class="nv-btn nv-btn--tonal" id="btn-refresh" type="button"><i class="fa-solid fa-rotate"></i> <span data-i18n="set.recheck">Re-check</span></button>
           <button class="nv-btn nv-btn--outline" id="btn-destroy" type="button"><i class="fa-solid fa-power-off"></i> <span data-i18n="set.destroy">Destroy session</span></button>
         </div>
@@ -779,7 +887,7 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
           <input type="range" id="in-temp" min="0" max="2" step="0.1" value="1">
           <span class="m3-body-small" data-i18n="set.tempHint">Higher means more creative, more varied answers.</span>
         </div>
-        <div class="ctl">
+        <div class="ctl" id="ctl-topk">
           <div class="ctl-head"><b data-i18n="set.topk">Top-K</b><span class="mono" id="lbl-topk">3</span></div>
           <input type="range" id="in-topk" min="1" max="8" step="1" value="3">
           <span class="m3-body-small" data-i18n="set.topkHint">How many candidate tokens the model weighs at each step.</span>
@@ -902,7 +1010,11 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
       <div class="abt-label" style="margin-top:30px" data-i18n="about.stateLabel">Current state</div>
       <div class="abt-grid">
         <div class="abt-sync">
-          <span class="abt-sync__l"><i class="fa-solid fa-microchip"></i> <span data-i18n="kv.avail">Availability</span></span>
+          <span class="abt-sync__l"><i class="fa-solid fa-microchip"></i> <span data-i18n="kv.engine">Engine</span></span>
+          <span class="abt-sync__v" id="about-engine">-</span>
+        </div>
+        <div class="abt-sync">
+          <span class="abt-sync__l"><i class="fa-solid fa-circle-check"></i> <span data-i18n="kv.avail">Availability</span></span>
           <span class="abt-sync__v" id="about-avail">-</span>
         </div>
         <div class="abt-sync">
@@ -966,6 +1078,7 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
 </div>
 
 <script src="/res/assets/js/i18n.js"></script>
+<script src="/res/assets/js/providers.js"></script>
 <script src="/res/assets/js/app.js"></script>
 </body>
 </html>
