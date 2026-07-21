@@ -184,6 +184,38 @@ const webllmProvider = {
   canCancelDownload() { return !!this.worker; },
 };
 
+/* ══ Hardware probe ════════════════════════════════════════════
+   What a browser will actually tell you about the machine, which is far less
+   than a task manager: capabilities and ceilings, never utilisation. There is
+   no API for "GPU is 60% busy" or "3 GB of VRAM free", by design — those would
+   be fingerprinting vectors. So this reports what is knowable and the panel
+   says plainly why the rest is missing. */
+async function probeGPU() {
+  if (!("gpu" in navigator)) return null;
+  let adapter;
+  try { adapter = await navigator.gpu.requestAdapter(); } catch { return null; }
+  if (!adapter) return null;
+
+  // GPUAdapter.info is the current shape; requestAdapterInfo() was the older
+  // spelling and is still what some builds ship.
+  let info = adapter.info;
+  if (!info && typeof adapter.requestAdapterInfo === "function") {
+    info = await adapter.requestAdapterInfo().catch(() => null);
+  }
+
+  return {
+    vendor: info?.vendor || null,
+    architecture: info?.architecture || null,
+    device: info?.device || null,
+    description: info?.description || null,
+    // shader-f16 is the one that decides whether half the catalogue can run.
+    f16: adapter.features?.has?.("shader-f16") ?? false,
+    features: adapter.features ? [...adapter.features] : [],
+    maxBufferSize: adapter.limits?.maxBufferSize ?? null,
+    maxStorageBufferBindingSize: adapter.limits?.maxStorageBufferBindingSize ?? null,
+  };
+}
+
 /** Reads the model the user picked; app.js owns the setting. */
 function currentWebllmModel() {
   return (typeof settings === "object" && settings.webllmModel) || WEBLLM_DEFAULT;
@@ -250,6 +282,7 @@ function webllmSession(engine, { temperature, system, history, quota }) {
   return {
     inputUsage: 0,
     inputQuota: quota,
+    lastCompletionTokens: null,   // filled from usage, for the tok/s readout
     // No quotaoverflow equivalent; the contract only ever optional-calls this.
     addEventListener() {},
     destroy() { engine.interruptGenerate?.(); },
@@ -257,6 +290,7 @@ function webllmSession(engine, { temperature, system, history, quota }) {
     promptStreaming(text, { signal } = {}) {
       const session = this;
       messages.push({ role: "user", content: text });
+      this.lastCompletionTokens = null;
       let acc = "";
 
       return (async function* () {
@@ -274,7 +308,10 @@ function webllmSession(engine, { temperature, system, history, quota }) {
           for await (const chunk of stream) {
             const delta = chunk.choices?.[0]?.delta?.content;
             if (delta) { acc += delta; yield delta; }
-            if (chunk.usage) session.inputUsage = chunk.usage.prompt_tokens ?? session.inputUsage;
+            if (chunk.usage) {
+              session.inputUsage = chunk.usage.prompt_tokens ?? session.inputUsage;
+              session.lastCompletionTokens = chunk.usage.completion_tokens ?? null;
+            }
           }
           if (signal?.aborted) throw new DOMException("Generation stopped", "AbortError");
         } finally {

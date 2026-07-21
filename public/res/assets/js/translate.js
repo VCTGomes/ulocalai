@@ -92,7 +92,11 @@ function showStrip({ title, desc, error, progress }) {
   const strip = $("strip");
   strip.classList.remove("hidden");
   strip.classList.toggle("is-err", !!error);
-  $("strip-ic").className = error ? "fa-solid fa-triangle-exclamation" : "fa-solid fa-cloud-arrow-down";
+  // The icon carries the same distinction as the wording: a cloud only when
+  // something is actually coming down the wire.
+  $("strip-ic").className = error ? "fa-solid fa-triangle-exclamation"
+    : typeof progress === "number" ? "fa-solid fa-cloud-arrow-down"
+    : "fa-solid fa-spinner fa-spin";
   $("strip-title").textContent = title;
   $("strip-desc").textContent = desc || "";
   const on = typeof progress === "number";
@@ -196,23 +200,36 @@ async function ensureTranslator(src, dst) {
     err.pair = pair;
     throw err;
   }
-  if (avail !== "available") {
-    showStrip({
-      title: t("tr.dl.pack").replace("{pair}", `${langName(src)} → ${langName(dst)}`),
-      desc: t("tr.dl.once"),
-      progress: 0,
-    });
-  }
+
+  // Two different waits wearing the same progress bar. A pack that is already
+  // on disk is not being downloaded — it is being loaded into memory, which is
+  // seconds rather than minutes and says nothing about the network. Calling
+  // both "downloading" was simply wrong.
+  const pairName = `${langName(src)} → ${langName(dst)}`;
+  const needsDownload = avail !== "available";
+  const strip = (progress) => showStrip({
+    title: needsDownload
+      ? t("tr.dl.pack").replace("{pair}", pairName)
+      : t("tr.load.mem").replace("{pair}", pairName),
+    desc: needsDownload ? t("tr.dl.once") : t("tr.load.desc"),
+    progress,
+  });
+
+  strip(needsDownload ? 0 : undefined);
 
   state.translator = await Translator.create({
     sourceLanguage: src,
     targetLanguage: dst,
+    // A monitor event means bytes really are coming down, whatever
+    // availability() said a moment ago — so the wording follows the event.
     monitor(m) {
-      m.addEventListener("downloadprogress", (e) => showStrip({
-        title: t("tr.dl.pack").replace("{pair}", `${langName(src)} → ${langName(dst)}`),
-        desc: t("tr.dl.once"),
-        progress: e.loaded,
-      }));
+      m.addEventListener("downloadprogress", (e) => {
+        showStrip({
+          title: t("tr.dl.pack").replace("{pair}", pairName),
+          desc: t("tr.dl.once"),
+          progress: e.loaded,
+        });
+      });
     },
   });
   state.pair = pair;
