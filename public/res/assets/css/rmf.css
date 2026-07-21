@@ -1,0 +1,1272 @@
+/* ════════════════════════════════════════════════════════════════
+   rmf.css — FONTE ÚNICA do design system RMF
+
+   Concatenação (nesta ordem) de:
+     1. Tokens Material 3 (paleta --md-sys-color-*) — light + dark
+     2. Componentes .m3-* ............... (de m3.css)
+     3. Estilos de Novidades .nv-* e .rmf-* (de novidades.css)
+     4. Fontes de ícone fa-rmf + fa-sparkles (paths reescritos p/ absolutos)
+
+   ⚠️  TROQUE AS CORES DA MARCA AQUI — todas as páginas acompanham.
+
+   Gerado por concatenação dos arquivos-fonte, que continuam no disco
+   (m3-tokens.css, m3.css, novidades.css, fa/css/fa-rmf.css, fa-sparkles.css).
+   Para regenerar, reconcatene os mesmos blocos.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────
+   1. TOKENS — paleta tonal derivada de #4E5B8E (RGB 78, 91, 142)
+   Superset: m3-tokens.css + (warning / --nv-appbar-h) de novidades.css
+   ───────────────────────────────────────────────────────────────── */
+:root {
+  --md-ref-typeface-brand: 'Inter', system-ui, sans-serif;
+  --md-ref-typeface-plain: 'Inter', system-ui, sans-serif;
+
+  /* ─── Marca — primary derivado de #4B5C92, seed/brand #2563EB ─── */
+  --md-rmf-brand: #2563EB;            /* seed do tema + AppStatus.info — NÃO usar cru em componentes */
+  --md-sys-color-primary: #4B5C92;
+  --md-sys-color-on-primary: #FFFFFF;
+  --md-sys-color-primary-container: #DCE1FA;
+  --md-sys-color-on-primary-container: #0A1633;
+  --md-sys-color-inverse-primary: #B7C0E5;
+
+  --md-sys-color-secondary: #595E72;
+  --md-sys-color-on-secondary: #FFFFFF;
+  --md-sys-color-secondary-container: #DEE1F4;
+  --md-sys-color-on-secondary-container: #161B2C;
+
+  --md-sys-color-tertiary: #74566D;
+  --md-sys-color-on-tertiary: #FFFFFF;
+  --md-sys-color-tertiary-container: #FED7F2;
+  --md-sys-color-on-tertiary-container: #2B1228;
+
+  /* ─── Status (Tailwind-500, fixo nos dois temas) — color / fill 12% / border 40% ─── */
+  --rmf-danger:  #EF4444;
+  --rmf-warning: #F59E0B;
+  --rmf-success: #22C55E;
+  --rmf-info:    #2563EB;
+  --rmf-danger-fill:    color-mix(in srgb, var(--rmf-danger)  12%, transparent);
+  --rmf-warning-fill:   color-mix(in srgb, var(--rmf-warning) 12%, transparent);
+  --rmf-success-fill:   color-mix(in srgb, var(--rmf-success) 12%, transparent);
+  --rmf-info-fill:      color-mix(in srgb, var(--rmf-info)    12%, transparent);
+  --rmf-danger-border:  color-mix(in srgb, var(--rmf-danger)  40%, transparent);
+  --rmf-warning-border: color-mix(in srgb, var(--rmf-warning) 40%, transparent);
+  --rmf-success-border: color-mix(in srgb, var(--rmf-success) 40%, transparent);
+  --rmf-info-border:    color-mix(in srgb, var(--rmf-info)    40%, transparent);
+
+  /* M3 error remapeado p/ o status danger (componentes herdam) */
+  --md-sys-color-error: var(--rmf-danger);
+  --md-sys-color-on-error: #FFFFFF;
+  --md-sys-color-error-container: var(--rmf-danger-fill);
+  --md-sys-color-on-error-container: var(--rmf-danger);
+
+  /* ─── Superfícies NEUTRAS — lift sem tint (DESIGN §1) ─── */
+  --md-sys-color-background: #FFFFFF;
+  --md-sys-color-on-background: #1C1B1F;
+  --md-sys-color-surface: #FFFFFF;
+  --md-sys-color-on-surface: #1C1B1F;
+  --md-sys-color-surface-variant: #E3E2E6;
+  --md-sys-color-on-surface-variant: #45464C;
+  --md-sys-color-surface-tint: #4B5C92;
+
+  --md-sys-color-outline: #76777C;
+  --md-sys-color-outline-variant: #C7C6CC;
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-scrim: #000000;
+
+  --md-sys-color-inverse-surface: #303034;
+  --md-sys-color-inverse-on-surface: #F4F0F4;
+
+  --md-sys-color-surface-container-lowest: #FFFFFF;
+  --md-sys-color-surface-container-low: #F7F7F7;     /* bloco/card (modalBlock) */
+  --md-sys-color-surface-container: #F1F1F2;
+  --md-sys-color-surface-container-high: #ECECED;
+  --md-sys-color-surface-container-highest: #E3E2E8; /* acento DENTRO do bloco */
+
+  /* Sucesso / aviso remapeados p/ status (fill 12% + texto = color 500) */
+  --md-sys-color-success: var(--rmf-success);
+  --md-sys-color-success-container: var(--rmf-success-fill);
+  --md-sys-color-on-success-container: var(--rmf-success);
+
+  --md-sys-color-warning: var(--rmf-warning);
+  --md-sys-color-warning-container: var(--rmf-warning-fill);
+  --md-sys-color-on-warning-container: var(--rmf-warning);
+
+  /* Acento de seleção/ativo — primary @ 12% (chips, indicador, toggles) — DESIGN §3.2 */
+  --rmf-select-fill: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent);
+
+  /* Raios — escala única (DESIGN §6): sm 8 / md 12 / lg 20 / full 999 */
+  --rmf-radius-sm: 8px;
+  --rmf-radius-md: 12px;
+  --rmf-radius-lg: 20px;
+  --rmf-radius-full: 999px;
+
+  /* Elevação de card (DESIGN §7/§10): elev-1 = sombra sutil padrão; elev-2 = hover.
+     surfaceTint é transparente → só sombra, nunca tinge a cor. No escuro a
+     separação vem do lift de cor do modalBlock (sombra quase imperceptível). */
+  --rmf-elev-1: 0 1px 3px rgba(0,0,0,.10), 0 1px 2px rgba(0,0,0,.06);
+  --rmf-elev-2: 0 2px 6px rgba(0,0,0,.12), 0 1px 3px rgba(0,0,0,.08);
+  /* Elevação 12 (DESIGN §8): modal/sheet/popup. O modal agora pinta modalSurface
+     (= surface, branco/quase-preto); a sombra + scrim separam da página. */
+  --rmf-elev-modal: 0 12px 32px rgba(0,0,0,.28), 0 4px 12px rgba(0,0,0,.16);
+
+  /* App bar — degrau "scrolled-under" (DESIGN §8.1): assenta ~no modalBlock. */
+  --md-rmf-appbar-scrolled: #F0F0F0;
+  /* Altura padrão da app-bar (sobrescreva por página se necessário) */
+  --md-rmf-appbar-height: 4rem;
+  /* Altura da app-bar de Novidades */
+  --nv-appbar-h: 3.5rem;
+
+  font-family: var(--md-ref-typeface-plain);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --md-sys-color-primary: #B7C0E5;
+    --md-sys-color-on-primary: #202B53;
+    --md-sys-color-primary-container: #36426A;
+    --md-sys-color-on-primary-container: #DCE1FA;
+    --md-sys-color-inverse-primary: #4B5C92;
+
+    --md-sys-color-secondary: #C1C5DC;
+    --md-sys-color-on-secondary: #2B3041;
+    --md-sys-color-secondary-container: #424658;
+    --md-sys-color-on-secondary-container: #DEE1F4;
+
+    --md-sys-color-tertiary: #E2BCD3;
+    --md-sys-color-on-tertiary: #43273E;
+    --md-sys-color-tertiary-container: #5B3D55;
+    --md-sys-color-on-tertiary-container: #FED7F2;
+
+    /* Status — mesmo Tailwind-500 dos dois temas (--rmf-* herdados do :root) */
+    --md-sys-color-error: var(--rmf-danger);
+    --md-sys-color-on-error: #FFFFFF;
+    --md-sys-color-error-container: var(--rmf-danger-fill);
+    --md-sys-color-on-error-container: var(--rmf-danger);
+
+    /* Superfícies neutras (escuro) — DESIGN §1 */
+    --md-sys-color-background: #0D0E13;
+    --md-sys-color-on-background: #E6E1E5;
+    --md-sys-color-surface: #0D0E13;
+    --md-sys-color-on-surface: #E6E1E5;
+    --md-sys-color-surface-variant: #45464A;
+    --md-sys-color-on-surface-variant: #C6C6CC;
+    --md-sys-color-surface-tint: #B7C0E5;
+
+    --md-sys-color-outline: #8F9099;
+    --md-sys-color-outline-variant: #45464A;
+
+    --md-sys-color-inverse-surface: #E6E1E5;
+    --md-sys-color-inverse-on-surface: #303034;
+
+    --md-sys-color-surface-container-lowest: #0D0E13;
+    --md-sys-color-surface-container-low: #1C1C21;     /* bloco/card (modalBlock) */
+    --md-sys-color-surface-container: #1F1F24;
+    --md-sys-color-surface-container-high: #26262B;
+    --md-sys-color-surface-container-highest: #2A2A2F; /* acento DENTRO do bloco */
+
+    --md-sys-color-success: var(--rmf-success);
+    --md-sys-color-success-container: var(--rmf-success-fill);
+    --md-sys-color-on-success-container: var(--rmf-success);
+
+    --md-sys-color-warning: var(--rmf-warning);
+    --md-sys-color-warning-container: var(--rmf-warning-fill);
+    --md-sys-color-on-warning-container: var(--rmf-warning);
+
+    --md-rmf-appbar-scrolled: #1B1C21;
+  }
+}
+
+/* Dark manual (.dark) — espelha o bloco @media (toggle via classe) */
+.dark {
+  --md-sys-color-primary: #B7C0E5;
+  --md-sys-color-on-primary: #202B53;
+  --md-sys-color-primary-container: #36426A;
+  --md-sys-color-on-primary-container: #DCE1FA;
+  --md-sys-color-inverse-primary: #4B5C92;
+
+  --md-sys-color-secondary: #C1C5DC;
+  --md-sys-color-on-secondary: #2B3041;
+  --md-sys-color-secondary-container: #424658;
+  --md-sys-color-on-secondary-container: #DEE1F4;
+
+  --md-sys-color-tertiary: #E2BCD3;
+  --md-sys-color-on-tertiary: #43273E;
+  --md-sys-color-tertiary-container: #5B3D55;
+  --md-sys-color-on-tertiary-container: #FED7F2;
+
+  /* Status — mesmo Tailwind-500 dos dois temas (--rmf-* herdados do :root) */
+  --md-sys-color-error: var(--rmf-danger);
+  --md-sys-color-on-error: #FFFFFF;
+  --md-sys-color-error-container: var(--rmf-danger-fill);
+  --md-sys-color-on-error-container: var(--rmf-danger);
+
+  --md-sys-color-success: var(--rmf-success);
+  --md-sys-color-success-container: var(--rmf-success-fill);
+  --md-sys-color-on-success-container: var(--rmf-success);
+
+  --md-sys-color-warning: var(--rmf-warning);
+  --md-sys-color-warning-container: var(--rmf-warning-fill);
+  --md-sys-color-on-warning-container: var(--rmf-warning);
+
+  /* Superfícies neutras (escuro) — DESIGN §1 */
+  --md-sys-color-background: #0D0E13;
+  --md-sys-color-on-background: #E6E1E5;
+  --md-sys-color-surface: #0D0E13;
+  --md-sys-color-on-surface: #E6E1E5;
+  --md-sys-color-surface-variant: #45464A;
+  --md-sys-color-on-surface-variant: #C6C6CC;
+  --md-sys-color-surface-tint: #B7C0E5;
+
+  --md-sys-color-outline: #8F9099;
+  --md-sys-color-outline-variant: #45464A;
+
+  --md-sys-color-inverse-surface: #E6E1E5;
+  --md-sys-color-inverse-on-surface: #303034;
+
+  --md-sys-color-surface-container-lowest: #0D0E13;
+  --md-sys-color-surface-container-low: #1C1C21;     /* bloco/card (modalBlock) */
+  --md-sys-color-surface-container: #1F1F24;
+  --md-sys-color-surface-container-high: #26262B;
+  --md-sys-color-surface-container-highest: #2A2A2F; /* acento DENTRO do bloco */
+
+  --md-rmf-appbar-scrolled: #1B1C21;
+}
+
+/* ===== RMF TOKENS END =====
+   Marcador estável: as páginas SSR (api-cidade-pagina.js) lêem este arquivo e
+   inlineiam SÓ o que vem ANTES desta linha (a paleta), mantendo o CSS crítico
+   embutido por SEO. Não remova nem altere o texto do marcador acima. */
+
+/* ─────────────────────────────────────────────────────────────────
+   2. COMPONENTES .m3-* (de m3.css — bloco :root omitido, já acima)
+   ───────────────────────────────────────────────────────────────── */
+html, body {
+  margin: 0;
+  background: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-background);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Logo RMF ─────────────────────────────────────────────── */
+.rmf-logo {
+  width:30px; height:30px; display:inline-block;
+  background-image: url("/res/iconblue.png");
+  background-size: contain; background-repeat: no-repeat; background-position: center;
+}
+@media (prefers-color-scheme: dark){
+  .rmf-logo { background-image: url("/res/icon.png"); }
+}
+
+/* ─── Safe areas (usam a altura da app-bar) ──────────────── */
+.safe-pt { padding-top: calc(var(--md-rmf-appbar-height) + env(safe-area-inset-top)); }
+.safe-pb { padding-bottom: calc(3rem + env(safe-area-inset-bottom)); }
+
+/* ─── Modo "app" (InAppWebView do Flutter / ?embed=1) ────── */
+html.app-mode header           { display: none; }
+html.app-mode .safe-pt         { padding-top: env(safe-area-inset-top); }
+html.app-mode #header-spacer   { display: none; }
+html.app-mode #page-transition { display: none; }
+
+/* ─── M3 Top App Bar (mesma estrutura do header das páginas de cidade) ─── */
+.m3-appbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 1100;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px;
+  padding-top: calc(8px + env(safe-area-inset-top));
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  transition: background-color 200ms ease;
+}
+/* Estado elevado: conteúdo rolando por baixo (toggle via m3-appbar-scroll.js) */
+.m3-appbar.is-scrolled { background: var(--md-rmf-appbar-scrolled); }
+
+.m3-appbar__back {
+  width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+  padding: 0; border: none; background: transparent; cursor: pointer;
+  color: var(--md-sys-color-on-surface-variant); text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  transition: background .15s;
+}
+.m3-appbar__back:hover { background: var(--md-sys-color-surface-container-high); }
+.m3-appbar__brand {
+  display: inline-flex; align-items: center; gap: 8px;
+  text-decoration: none; color: var(--md-sys-color-on-surface);
+}
+.m3-appbar__title {
+  font-family: var(--md-ref-typeface-brand);
+  font-size: 22px; font-weight: 500;
+  color: var(--md-sys-color-on-surface); user-select: none;
+}
+.m3-appbar__spacer { flex: 1; }
+
+/* ─── M3 cards ─────────────────────────────────────────────── */
+.m3-card {
+  position: relative;
+  border-radius: var(--rmf-radius-md);
+  padding: 20px;
+  box-shadow: var(--rmf-elev-1);
+}
+.m3-card-surface {
+  background: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
+}
+
+/* ─── M3 icon container ──────────────────────────────────── */
+.m3-icon-circle {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  width: 56px; height: 56px;
+  border-radius: 16px;
+}
+
+/* ─── Ícone de seção (menor, dentro do card) ─────────────── */
+.m3-section-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  width: 40px; height: 40px; border-radius: 12px;
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  font-size: 16px;
+}
+
+/* ─── Callout (bloco de destaque dentro de card) ─────────── */
+.m3-callout {
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex; align-items: flex-start; gap: 12px;
+  margin-top: 16px;
+}
+.m3-callout-success {
+  background: var(--md-sys-color-success-container);
+  color: var(--md-sys-color-on-success-container);
+}
+.m3-callout-surface {
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* ─── M3 typography ──────────────────────────────────────── */
+.m3-headline-small { font-family: var(--md-ref-typeface-brand); font-size: 24px; font-weight: 400; line-height: 32px; letter-spacing: 0; }
+.m3-title-medium   { font-family: var(--md-ref-typeface-plain); font-size: 16px; font-weight: 500; line-height: 24px; letter-spacing: 0.15px; }
+.m3-body-medium    { font-family: var(--md-ref-typeface-plain); font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0.25px; color: var(--md-sys-color-on-surface-variant); }
+.m3-body-small     { font-family: var(--md-ref-typeface-plain); font-size: 12px; font-weight: 400; line-height: 16px; letter-spacing: 0.4px; color: var(--md-sys-color-on-surface-variant); }
+
+/* Texto de leitura (parágrafos de conteúdo) */
+.m3-prose {
+  font-family: var(--md-ref-typeface-plain);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  letter-spacing: 0.25px;
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+}
+.m3-prose + .m3-prose { margin-top: 12px; }
+.m3-prose strong {
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface);
+}
+.m3-prose a {
+  color: var(--md-sys-color-primary);
+  text-decoration: underline;
+}
+.m3-prose code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+/* ─── Page transition ─────────────────────────────────────── */
+#page-transition {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--md-sys-color-background);
+  transition: opacity 300ms;
+  pointer-events: none;
+  opacity: 1;
+}
+#page-transition.gone { opacity: 0; }
+
+/* ─── Icons inside md-* buttons ──────────────────────────── */
+md-icon-button i { font-size: 20px; }
+
+/* ─────────────────────────────────────────────────────────────────
+   3. NOVIDADES .nv-* / .rmf-* (de novidades.css — blocos de token omitidos)
+   ───────────────────────────────────────────────────────────────── */
+/* ─── Body (só no modo standalone, via classe) ──────────────────── */
+.nv-body {
+  margin: 0;
+  font-family: var(--md-ref-typeface-plain);
+  background: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-surface);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  overflow-y: auto;
+}
+.nv-body * { box-sizing: border-box; }
+
+/* ─── Page transition (standalone) ──────────────────────────────────
+   Escopado em .nv-body: o host SPA tem seu próprio #page-transition. */
+.nv-body #page-transition {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--md-sys-color-background);
+  transition: opacity 300ms; pointer-events: none;
+}
+.nv-body #page-transition.opacity-0 { opacity: 0; }
+.nv-body #page-transition.opacity-100 { opacity: 1; }
+
+/* ─── Logo ───────────────────────────────────────────────────────────
+   Escopado na app-bar de novidades pra não colidir com o .rmf-logo do
+   host no modo SPA. */
+.nv-appbar .rmf-logo {
+  width: 30px; height: 30px; flex-shrink: 0; display: inline-block;
+  background: url("/res/iconblue.png") center/contain no-repeat;
+}
+@media (prefers-color-scheme: dark) { :root:not(.light) .nv-appbar .rmf-logo { background-image: url("/res/icon.png"); } }
+.dark .nv-appbar .rmf-logo { background-image: url("/res/icon.png"); }
+
+/* ─── Top App Bar (M3) — coluna: barra de título + linha de abas ──── */
+.nv-appbar {
+  position: sticky; top: 0; z-index: 1100;
+  background: var(--md-sys-color-surface);
+  transition: background-color 200ms ease;
+  padding-top: env(safe-area-inset-top);
+}
+.nv-appbar.is-scrolled { background: var(--md-rmf-appbar-scrolled); }
+.nv-appbar__bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+}
+.nv-appbar__back {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  border: none; background: transparent; cursor: pointer;
+  color: var(--md-sys-color-on-surface-variant);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 17px; transition: background .15s;
+}
+.nv-appbar__back:hover { background: var(--md-sys-color-surface-container-high); }
+.nv-appbar__brand { display: inline-flex; align-items: center; gap: 8px; }
+.nv-appbar__title {
+  font-family: var(--md-ref-typeface-brand);
+  font-size: 20px; font-weight: 600; letter-spacing: -.01em;
+  color: var(--md-sys-color-on-surface); user-select: none;
+}
+
+/* ─── M3 primary tabs (linha de abas com indicador/underline) ────── */
+.nv-tabs {
+  display: flex;
+  box-shadow: inset 0 -1px 0 var(--md-sys-color-surface-variant);
+}
+.nv-tab {
+  flex: 1; position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 48px; padding: 0 12px; border: none; background: transparent; cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: color .15s, background .15s;
+}
+.nv-tab i { font-size: 15px; }
+.nv-tab:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) 6%, transparent); }
+.nv-tab.tab-active { color: var(--md-sys-color-primary); }
+/* Indicador M3: barra arredondada sob a aba ativa */
+.nv-tab.tab-active::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0;
+  height: 3px; border-radius: 3px 3px 0 0;
+  background: var(--md-sys-color-primary);
+}
+.nv-tab.hidden { display: none; }
+@media (max-width: 380px) { .nv-tab { font-size: 13px; gap: 6px; } }
+
+/* ─── Desktop: abas inline no header principal, centralizadas ──────────
+   No desktop (mesmo breakpoint do JS, 1024px) some a 2ª linha de abas:
+   o header vira uma grade [marca | abas | espaçador] em UMA linha, com a
+   marca à esquerda e as abas como grupo compacto centralizado. A coluna 3
+   (1fr vazia) equilibra a 1 pra centralizar de verdade.
+
+   COMO REVERTER PRO MODELO ANTERIOR (2 linhas: barra em cima, abas full-width
+   embaixo, M3 canônico): basta APAGAR este bloco @media inteiro. Nada fora
+   daqui foi alterado — .nv-appbar volta a ser o sticky simples e .nv-tabs/.nv-tab
+   voltam ao flex:1 de largura cheia. */
+@media (min-width: 1024px) {
+  .nv-appbar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+  }
+  .nv-appbar__bar { grid-column: 1; }
+  .nv-tabs {
+    grid-column: 2;
+    box-shadow: none; /* sem a underline de largura cheia; o indicador da aba ativa fica */
+  }
+  /* Abas não esticam mais (sem flex:1); viram pills do tamanho do conteúdo,
+     com altura casada à barra pra o indicador M3 assentar na base do header. */
+  .nv-tab { flex: 0 0 auto; height: 60px; padding: 0 20px; min-width: 160px; }
+}
+
+/* ─── Main / títulos ────────────────────────────────────────────── */
+.nv-page {
+  max-width: 1024px; margin: 0 auto; width: 100%;
+  padding-left: 16px; padding-right: 16px;
+  padding-bottom: calc(8rem + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column;
+}
+.nv-head { padding: 28px 0 20px; }
+.nv-head h1 {
+  font-family: var(--md-ref-typeface-brand);
+  font-size: clamp(26px, 5vw, 34px); font-weight: 700; letter-spacing: -.02em;
+  margin: 0 0 8px; color: var(--md-sys-color-on-surface);
+}
+.nv-head p { margin: 0; font-size: 15px; color: var(--md-sys-color-on-surface-variant); }
+
+.nv-hidden { display: none !important; }
+
+/* ─── Resumo IA banner ──────────────────────────────────────────── */
+.nv-resumo {
+  margin-bottom: 24px; padding: 18px 20px; border-radius: var(--rmf-radius-md);
+  background: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
+  box-shadow: var(--rmf-elev-1);
+}
+.nv-resumo__btn {
+  width: 100%; display: flex; align-items: flex-start; gap: 8px;
+  text-align: left; background: none; border: none; padding: 0; cursor: pointer;
+  font: inherit; color: inherit;
+}
+@media (min-width: 640px) { .nv-resumo__btn { cursor: default; } }
+.nv-resumo__col { flex: 1; min-width: 0; }
+.nv-resumo__label {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--md-sys-color-primary);
+}
+/* Alternância diário/semanal: ícone swap_horiz + nome do outro resumo,
+   ao lado do label. Sem fundo/borda — herda o estilo do label (uppercase,
+   10px, primary) e só ganha o ícone e o cursor. */
+.nv-resumo__switch { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; color: var(--md-sys-color-on-surface); }
+.nv-resumo__switch .mi { font-size: 14px; }
+.nv-resumo__switch:hover { opacity: .8; }
+.nv-resumo__switch.hidden { display: none; }
+/* Período do resumo semanal (data de início e fim, abaixo do label) */
+.nv-resumo__periodo { margin: -2px 0 6px; font-size: 11px; font-weight: 500; color: var(--md-sys-color-on-surface-variant); }
+.nv-resumo__periodo.hidden { display: none; }
+.nv-resumo__text { margin: 0; font-size: 14px; line-height: 1.6; color: var(--md-sys-color-on-surface); white-space: pre-line; }
+.nv-resumo__chevron {
+  font-size: 12px; margin-top: 4px; flex-shrink: 0;
+  color: var(--md-sys-color-on-surface-variant); transition: transform .2s;
+}
+.nv-resumo__chevron.rotate-180 { transform: rotate(180deg); }
+@media (min-width: 640px) { .nv-resumo__chevron { display: none; } }
+.nv-resumo__disclaimer {
+  display: none; align-items: center; gap: 6px; margin-top: 10px;
+  font-size: 11px; color: var(--md-sys-color-on-surface-variant);
+}
+@media (min-width: 640px) { .nv-resumo__disclaimer { display: flex; } }
+.nv-resumo__disclaimer.flex { display: flex; }
+.nv-resumo__disclaimer.hidden { display: none; }
+.nv-resumo__push {
+  display: none; align-items: flex-start; justify-content: space-between; gap: 12px;
+  margin-top: 12px; padding-top: 12px; cursor: pointer;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+@media (min-width: 640px) { .nv-resumo__push { display: flex; } }
+.nv-resumo__push.flex { display: flex; }
+.nv-resumo__push.hidden { display: none; }
+.nv-resumo__push-txt { flex: 1; padding-right: 4px; }
+.nv-resumo__push-txt strong { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface); }
+.nv-resumo__push-txt strong i { color: var(--md-sys-color-primary); }
+.nv-resumo__push-txt span { display: block; font-size: 11px; margin-top: 2px; color: var(--md-sys-color-on-surface-variant); }
+.nv-resumo__ctrl { flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; }
+.resumo-push-spinner { display: none; width: 40px; height: 20px; align-items: center; justify-content: center; }
+.resumo-push-spinner.flex { display: flex; }
+.resumo-push-spinner i { color: var(--md-sys-color-primary); }
+/* base = inline-flex; setPushCtrlState alterna a classe `hidden` pra mostrar/
+   esconder, então a regra `.hidden` precisa vencer (independe de modo). */
+.resumo-push-gerenciar {
+  display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer;
+  color: var(--md-sys-color-primary); background: transparent;
+  border: 1px solid var(--md-sys-color-primary); border-radius: 100px; padding: 3px 12px;
+}
+.resumo-push-gerenciar.hidden { display: none; }
+.resumo-push-gerenciar:hover { background: var(--md-sys-color-primary-container); }
+.resumo-push-ativar {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer;
+  color: #fff; background: var(--md-sys-color-primary);
+  border: none; border-radius: 100px; padding: 6px 14px;
+}
+.resumo-push-ativar.hidden { display: none; }
+.resumo-push-ativar:hover { opacity: .88; }
+
+/* line-clamp util (usado pelo resumo no mobile) */
+.line-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+@media (min-width: 640px) {
+  .sm\:line-clamp-none { -webkit-line-clamp: unset; display: block; overflow: visible; }
+}
+
+/* ─── Toggle switch (M3-ish) ────────────────────────────────────────
+   Escopado em .nv-switch (wrapper próprio, presente nos dois modos) pra
+   não colidir com o .toggle-checkbox do Tailwind do host no modo SPA, nem
+   com os toggles dos modais próprios do host. */
+.nv-switch { position: relative; display: inline-block; width: 40px; height: 20px; flex-shrink: 0; pointer-events: none; }
+.nv-switch.hidden { display: none; }
+.nv-switch .toggle-checkbox {
+  position: absolute; left: 0; right: auto; top: 0; width: 20px; height: 20px; margin: 0;
+  appearance: none; -webkit-appearance: none; border-radius: 50%;
+  background: var(--md-sys-color-surface-container-lowest);
+  border: 4px solid var(--md-sys-color-outline);
+  transition: transform .2s, border-color .2s; cursor: pointer;
+}
+.nv-switch .toggle-label {
+  display: block; height: 20px; border-radius: 100px; overflow: hidden;
+  background: var(--md-sys-color-surface-variant);
+}
+.nv-switch .toggle-checkbox:checked { transform: translateX(20px); right: auto; border-color: var(--md-sys-color-primary); }
+.nv-switch .toggle-checkbox:checked + .toggle-label { background: var(--md-sys-color-primary); }
+
+/* ─── Quick chips (filtros rápidos) ──────────────────────────────────
+   `.fc` é escopado em .nv-page: o host (index/indexbeta) tem `.fc` próprio
+   no Tailwind pra UI do mapa; sem o escopo, no modo SPA este arquivo
+   restilizaria os chips do host. */
+.nv-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+/* Chip de página tipo A (§3.4-A) com o acento de seleção §3.2:
+   não-sel = modalBlock + outlineVariant 1px + w500; sel = primary@12% + texto/
+   borda primary (1.4px) + w600. */
+.nv-page .fc {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 7px 14px; border-radius: var(--rmf-radius-sm); cursor: pointer; user-select: none;
+  font-size: 13px; font-weight: 500; line-height: 1.1; white-space: nowrap;
+  color: var(--md-sys-color-on-surface-variant);
+  background: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant); transition: background .15s, color .15s, border-color .15s;
+}
+.nv-page .fc:hover { background: var(--md-sys-color-surface-container); }
+.nv-page .fc.on {
+  background: var(--rmf-select-fill);
+  color: var(--md-sys-color-primary);
+  border-color: var(--md-sys-color-primary); border-width: 1.4px;
+  font-weight: 600;
+}
+.nv-page .fc span.block { display: block; }
+
+/* ─── Contador de novidades ─────────────────────────────────────── */
+.nv-counter {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 8px; padding: 0 2px;
+  font-size: 12px; font-weight: 500; color: var(--md-sys-color-on-surface-variant);
+}
+.nv-counter.hidden { display: none; }
+.nv-counter i { font-size: 10px; }
+
+/* ─── Feed (lista de cards) ─────────────────────────────────────── */
+.nv-feed {
+  display: flex; flex-direction: column;
+  border-radius: var(--rmf-radius-md); overflow: hidden;
+  background: var(--md-sys-color-surface-container-low);
+  box-shadow: var(--rmf-elev-1);
+}
+.nv-feed > * + * { border-top: 1px solid var(--md-sys-color-outline-variant); }
+
+/* ─── Card (linha do feed) ──────────────────────────────────────── */
+.nv-card { padding: 20px; display: flex; flex-direction: column; gap: 16px; cursor: pointer; transition: background .15s; }
+.nv-card:hover { background: var(--md-sys-color-surface-container); }
+.nv-card.nv-sel { background: var(--rmf-select-fill); outline: 2px solid var(--md-sys-color-primary); outline-offset: -2px; }
+.nv-card__row { display: flex; gap: 16px; }
+.nv-card__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.nv-card__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.nv-card__title { margin: 0; font-size: 16px; font-weight: 700; color: var(--md-sys-color-on-surface); min-width: 0; }
+.nv-card__title--sm { font-size: 14px; line-height: 1.3; }
+/* Selo NOVO (cor primary) à ESQUERDA da data (NOVO 12/06/2026), coladinho, só
+   quando coletado hoje. A ordem no DOM é selo→data; o margin-left:auto vai no
+   elemento mais à esquerda do par (o selo quando presente; senão a própria data,
+   regra abaixo) pra empurrar o grupo todo pra direita em qualquer header. */
+.nv-card__novo {
+  flex-shrink: 0; margin-left: auto; font-size: 10px; font-weight: 800; letter-spacing: .5px;
+  padding: 2px 7px; border-radius: 6px;
+  color: var(--md-sys-color-on-primary); background: var(--md-sys-color-primary);
+}
+/* Com o selo presente, ele já empurrou o grupo; a data não repete o auto. */
+.nv-card__novo + .nv-card__date { margin-left: 0; }
+.nv-card__date {
+  flex-shrink: 0; margin-left: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; padding: 2px 8px; border-radius: 6px;
+  color: var(--md-sys-color-on-surface-variant); background: var(--md-sys-color-surface-container-high);
+}
+.nv-card__date--xs { font-size: 10px; }
+.nv-card__loc { margin: -4px 0 0; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--md-sys-color-on-surface-variant); }
+.nv-card__loc--sm { font-size: 12px; }
+.nv-card__loc i { font-size: 11px; opacity: .7; }
+.nv-card__loc .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nv-card__badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.nv-card__msg { margin: 0; font-size: 13px; line-height: 1.55; color: var(--md-sys-color-on-surface-variant); }
+.nv-card__foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding-top: 12px; border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+.nv-card__foot--end { justify-content: flex-end; }
+.nv-card__erb {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.nv-card__erb b, .nv-card__erb strong { color: var(--md-sys-color-on-surface); font-weight: 700; }
+
+/* ─── Link "Localizar no Mapa" ──────────────────────────────────── */
+.nv-link {
+  display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+  font-size: 12px; font-weight: 600; text-decoration: none;
+  color: var(--md-sys-color-primary); transition: opacity .15s;
+}
+.nv-link:hover { opacity: .8; }
+.nv-link--xs { font-size: 10px; }
+
+/* ─── Mini mapa (preview) ───────────────────────────────────────── */
+.nv-map {
+  position: relative; flex-shrink: 0; align-self: flex-start;
+  width: 7rem; height: 7rem; border-radius: 16px; overflow: hidden;
+  background: var(--md-sys-color-surface-container-high);
+}
+.nv-map--banner { width: 100%; height: 11rem; border-radius: 0; align-self: auto; }
+.nv-map__attr {
+  position: absolute; bottom: 4px; right: 4px; pointer-events: none;
+  font-size: 9px; color: #475569; background: rgba(255,255,255,.7);
+  padding: 0 4px; border-radius: 2px;
+}
+
+/* ─── Bloco de frequências ──────────────────────────────────────── */
+.nv-freq {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 8px 12px; border-radius: 12px; font-size: 13px;
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface-variant);
+}
+.nv-freq__line { display: flex; align-items: center; gap: 8px; }
+.nv-freq__line i { flex-shrink: 0; color: var(--md-sys-color-primary); }
+.nv-freq b { color: var(--md-sys-color-on-surface); }
+
+/* ─── Badges ────────────────────────────────────────────────────── */
+.nv-badge {
+  display: inline-flex; align-items: center; height: 24px; padding: 0 10px;
+  border-radius: 100px; font-size: 11px; font-weight: 700; letter-spacing: .01em;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.nv-badge i { margin-right: 6px; opacity: .85; }
+.nv-badge--new   { background: var(--md-sys-color-success-container); color: var(--md-sys-color-on-success-container); border-color: var(--rmf-success-border); }
+.nv-badge--up    { background: var(--rmf-select-fill); color: var(--md-sys-color-primary); border-color: color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent); }
+.nv-badge--down  { background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); border-color: var(--rmf-danger-border); }
+.nv-badge--alt   { background: var(--md-sys-color-warning-container); color: var(--md-sys-color-on-warning-container); border-color: var(--rmf-warning-border); }
+.nv-badge--tech  { background: var(--md-sys-color-surface-container-highest); color: var(--md-sys-color-on-surface-variant); }
+.nv-badge--tech-new { background: var(--md-sys-color-success-container); color: var(--md-sys-color-on-success-container); border-color: var(--rmf-success-border); }
+.nv-badge--tech-rm  { background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); border-color: var(--rmf-danger-border); }
+/* Badge da operadora — cor vem inline via --c (hex da marca) */
+.nv-badge--op { background: color-mix(in srgb, var(--c, var(--md-sys-color-primary)) 16%, transparent); color: var(--c, var(--md-sys-color-primary)); border-color: color-mix(in srgb, var(--c, var(--md-sys-color-primary)) 30%, transparent); font-weight: 700; }
+.dark .nv-badge--op { color: color-mix(in srgb, var(--c, var(--md-sys-color-primary)) 55%, #fff); }
+.nv-badge__sub { margin-left: 4px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; opacity: .75; }
+
+/* Marco (troféu) */
+.nv-marco {
+  display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
+  padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em;
+  background: var(--md-sys-color-warning-container); color: var(--md-sys-color-on-warning-container);
+}
+.nv-marco i { font-size: 9px; }
+.nv-marco span { text-transform: none; letter-spacing: normal; }
+.nv-marco--lg { padding: 6px 12px; border-radius: 12px; font-size: 12px; gap: 8px; }
+.nv-marco--lg i { font-size: 13px; color: var(--md-sys-color-warning); }
+
+/* ─── Hero "Em destaque" ────────────────────────────────────────── */
+.nv-hero { margin-bottom: 24px; }
+.nv-hero.grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 1024px) { .nv-hero.grid { grid-template-columns: repeat(3, 1fr); } }
+.nv-hero__main { grid-column: auto; }
+@media (min-width: 1024px) { .nv-hero__main { grid-column: span 2; } }
+.nv-hero__side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.nv-hcard {
+  display: flex; flex-direction: column; height: 100%; overflow: hidden; cursor: pointer;
+  border-radius: var(--rmf-radius-md);
+  background: var(--md-sys-color-surface-container-low); box-shadow: var(--rmf-elev-1);
+  transition: box-shadow .15s;
+}
+.nv-hcard:hover { box-shadow: var(--rmf-elev-2); }
+.nv-hcard.nv-sel { box-shadow: var(--rmf-elev-2); outline: 2px solid var(--md-sys-color-primary); outline-offset: -2px; }
+.nv-hcard__body { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 16px 20px 20px; }
+.nv-hcard__title { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.15; color: var(--md-sys-color-on-surface); }
+.nv-hcard__motivo { margin: -4px 0 0; font-size: 12px; font-style: italic; color: var(--md-sys-color-on-surface-variant); }
+.nv-hcard__foot { margin-top: auto; }
+
+/* _Badge.brand "EM DESTAQUE" (DESIGN §3.6): brand @ 12% + borda brand @ 40%. */
+.nv-star {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 10px; border-radius: 100px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .12em;
+  background: color-mix(in srgb, var(--md-rmf-brand) 12%, transparent);
+  color: var(--md-rmf-brand);
+  border: 1px solid color-mix(in srgb, var(--md-rmf-brand) 40%, transparent);
+}
+/* No escuro o brand cru (#2563EB) fica de baixo contraste sobre o fill; clareia
+   o texto (mesmo recurso de .nv-badge--op). */
+.dark .nv-star { color: color-mix(in srgb, var(--md-rmf-brand) 55%, #fff); }
+@media (prefers-color-scheme: dark) { :root:not(.light) .nv-star { color: color-mix(in srgb, var(--md-rmf-brand) 55%, #fff); } }
+.nv-star i { font-size: 9px; }
+
+/* Card secundário do mosaico */
+.nv-scard {
+  display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; cursor: pointer; padding: 16px;
+  border-radius: var(--rmf-radius-md);
+  background: var(--md-sys-color-surface-container-low); box-shadow: var(--rmf-elev-1);
+  transition: box-shadow .15s;
+}
+.nv-scard:hover { box-shadow: var(--rmf-elev-2); }
+.nv-scard__row { display: flex; gap: 12px; min-width: 0; }
+.nv-scard__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.nv-scard__foot { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--md-sys-color-outline-variant); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* ─── Estado vazio ──────────────────────────────────────────────── */
+.nv-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 64px 16px; text-align: center; }
+.nv-empty.hidden { display: none; }
+.nv-empty h3 { margin: 0 0 4px; font-size: 18px; font-weight: 700; color: var(--md-sys-color-on-surface); }
+.nv-empty p { margin: 0; font-size: 14px; color: var(--md-sys-color-on-surface-variant); }
+.nv-empty button { margin-top: 16px; font-size: 14px; font-weight: 600; color: var(--md-sys-color-primary); background: none; border: none; cursor: pointer; }
+.nv-empty button.hidden { display: none; }
+
+/* ─── Botão "Carregar mais" ─────────────────────────────────────── */
+.nv-loadmore-wrap { display: flex; justify-content: center; margin-top: 28px; }
+.nv-loadmore {
+  display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 24px;
+  border-radius: 100px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 600;
+  color: var(--md-sys-color-on-surface); background: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant); transition: background .15s;
+}
+.nv-loadmore:hover { background: var(--md-sys-color-surface-container-high); }
+.nv-loadmore.hidden { display: none; }
+.nv-loadmore:disabled { opacity: .7; cursor: default; }
+
+/* ─── Skeleton ──────────────────────────────────────────────────── */
+.news-skel { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.nv-skel-bar { background: var(--md-sys-color-surface-container-high); border-radius: 6px; animation: nv-pulse 1.5s ease-in-out infinite; }
+.nv-skel-bar--pill { border-radius: 100px; }
+@keyframes nv-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+
+/* ─── FABs ──────────────────────────────────────────────────────── */
+.nv-fab {
+  position: fixed; z-index: 1000; display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; border: none; transition: box-shadow .15s, transform .15s, bottom .3s cubic-bezier(.4,0,.2,1);
+}
+/* App Install Banner aberto: sobe os FABs para não ficarem cobertos pela barra */
+body.app-banner-open .nv-fab--filtros { bottom: calc(1.5rem + 64px + env(safe-area-inset-bottom)); }
+body.app-banner-open .nv-fab--alert   { bottom: calc(5.75rem + 64px + env(safe-area-inset-bottom)); }
+.nv-fab--alert {
+  width: 48px; height: 48px; border-radius: 50%;
+  bottom: calc(5.75rem + env(safe-area-inset-bottom)); right: calc(1.5rem + env(safe-area-inset-right));
+  background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface-variant);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  box-shadow: 0 4px 12px rgba(0,0,0,.15); font-size: 18px;
+}
+.nv-fab--alert:hover { box-shadow: 0 6px 18px rgba(0,0,0,.2); }
+.nv-fab--filtros {
+  gap: 8px; height: 56px; padding: 0 24px; border-radius: 100px;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom)); right: calc(1.5rem + env(safe-area-inset-right));
+  background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
+  font: inherit; font-size: 15px; font-weight: 600; box-shadow: 0 6px 18px rgba(0,0,0,.22);
+}
+.nv-fab--filtros:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(0,0,0,.28); }
+.nv-fab__count {
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 100px;
+  display: none; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; background: var(--md-sys-color-on-primary); color: var(--md-sys-color-primary);
+}
+
+/* ─── Modais (alertas/filtros/erb/tv) ───────────────────────────── */
+/* Base = flex (visível). app-notifications.js (alert/filtros) abre removendo
+   `hidden`+adicionando `flex`; app-novidades.js (erb/tv) abre só removendo
+   `hidden`. Logo a base precisa ser flex e `.hidden` é quem esconde. */
+.nv-modal {
+  position: fixed; inset: 0; z-index: 2000; padding: 16px;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--md-sys-color-scrim) 54%, transparent);
+  backdrop-filter: blur(4px); transition: opacity .2s;
+}
+.nv-modal.hidden { display: none; }
+/* Fundo do modal = modalSurface (= surface), não um container cinza (DESIGN §8). */
+.nv-modal__panel {
+  width: 100%; max-width: 28rem; max-height: 90vh; display: flex; flex-direction: column;
+  border-radius: var(--rmf-radius-lg); overflow: hidden; transition: transform .2s;
+  background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface);
+  box-shadow: var(--rmf-elev-modal);
+}
+.nv-modal__panel--lg { max-width: 32rem; }
+.nv-modal__panel.scale-95 { transform: scale(.95); }
+.nv-modal__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 20px; flex-shrink: 0; border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+.nv-modal__title { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; color: var(--md-sys-color-on-surface); }
+.nv-modal__title i { color: var(--md-sys-color-primary); }
+.nv-modal__actions { display: flex; align-items: center; gap: 4px; }
+.nv-modal__body { padding: 20px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+.nv-modal__map { position: relative; width: 100%; height: 11rem; flex-shrink: 0; overflow: hidden; background: var(--md-sys-color-surface-container-high); }
+.nv-modal__info { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 8px; overflow: auto; max-height: 20rem; font-size: 14px; color: var(--md-sys-color-on-surface); }
+.nv-modal__foot { padding: 12px 16px; flex-shrink: 0; border-top: 1px solid var(--md-sys-color-outline-variant); display: flex; justify-content: flex-end; }
+
+/* .ibtn é escopado em .nv-modal (e .nv-body) pra não tocar o botão homônimo
+   dos modais próprios do host index no modo SPA. */
+.nv-modal .ibtn, .nv-body .ibtn {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; cursor: pointer; border: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--md-sys-color-on-surface-variant); background: transparent; transition: background .15s;
+}
+.nv-modal .ibtn:hover, .nv-body .ibtn:hover { background: var(--md-sys-color-surface-container-highest); }
+.nv-modal .ibtn--filled, .nv-body .ibtn--filled { background: var(--md-sys-color-surface-container-highest); }
+.nv-modal .ibtn--sm, .nv-body .ibtn--sm { width: 32px; height: 32px; }
+
+/* Campos de formulário (modais) */
+.nv-field { display: flex; flex-direction: column; gap: 6px; }
+.nv-field__label { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--md-sys-color-on-surface-variant); }
+.nv-control { position: relative; }
+/* Caixas de texto / select (DESIGN §3.3): bloco preenchido (modalBlock),
+   borda outlineVariant em repouso, acende em primary no foco (acento §3.2). */
+.nv-control select, .nv-control input, .nv-input {
+  width: 100%; height: 44px; padding: 0 14px; font: inherit; font-size: 14px;
+  border-radius: var(--rmf-radius-md); border: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-container-low); color: var(--md-sys-color-on-surface);
+}
+.nv-control select { appearance: none; padding-right: 38px; cursor: pointer; }
+/* Foco = borda primary "1.4" (1px borda + 1px anel interno, sem deslocar layout) */
+.nv-control select:focus, .nv-control input:focus, .nv-input:focus {
+  outline: none; border-color: var(--md-sys-color-primary);
+  box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
+}
+.nv-control__chevron { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
+.nv-control--search input { padding-left: 38px; }
+.nv-control__search-ic { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 13px; color: var(--md-sys-color-on-surface-variant); }
+
+/* Botões dos modais */
+.nv-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 44px; padding: 0 20px; border-radius: 100px; cursor: pointer; font: inherit;
+  font-size: 14px; font-weight: 600; border: 1px solid transparent; transition: background .15s, filter .15s;
+}
+.nv-btn--filled { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
+.nv-btn--filled:hover { filter: brightness(1.05); }
+.nv-btn--tonal { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
+.nv-btn--outline { background: transparent; color: var(--md-sys-color-on-surface); border-color: var(--md-sys-color-outline); }
+.nv-btn--outline:hover { background: var(--md-sys-color-surface-container-high); }
+.nv-btn--block { width: 100%; }
+
+/* Modal de alertas: lista de cidades + sugestões */
+.nv-alert-intro { margin: 0; font-size: 12px; line-height: 1.4; color: var(--md-sys-color-on-surface-variant); }
+.nv-city-add { display: flex; gap: 8px; }
+.nv-suggestions {
+  position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; z-index: 50;
+  max-height: 12rem; overflow-y: auto; list-style: none; padding: 0; margin-bottom: 0;
+  border-radius: 12px; border: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-container-high); font-size: 14px;
+}
+.nv-suggestions.hidden { display: none; }
+/* Itens da lista de sugestões — renderizados pelo app-notifications.js com
+   classes Tailwind (inexistentes no standalone). Escopado em .nv-body. */
+.nv-body #city-suggestions li {
+  list-style: none; display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px; cursor: pointer; color: var(--md-sys-color-on-surface);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant); transition: background .12s;
+}
+.nv-body #city-suggestions li:last-child { border-bottom: 0; }
+.nv-body #city-suggestions li:hover { background: var(--md-sys-color-surface-container-high); }
+.nv-body #city-suggestions li span:last-child { font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
+
+.nv-city-list { display: flex; flex-wrap: wrap; gap: 8px; min-height: 2rem; list-style: none; padding: 0; margin: 0; }
+
+/* ─── Chips de cidade do modal de Notificações ───────────────────────
+   Renderizados pelo app-notifications.js (compartilhado, NÃO reescrito): o
+   próprio <li> É o chip (classes Tailwind inline) com o nome + <span> da UF +
+   um <button> de remover. Estado vazio = <li class="... italic">. No SPA o
+   Tailwind do host resolve; no standalone (sem Tailwind) recriamos o estilo
+   aqui, ESCOPADO em .nv-body pra não tocar a UI do host. */
+/* Chip de entidade tipo C (DESIGN §3.4-C): canto 20, fundo tingido por tipo.
+   Cidade = primaryContainer + borda primary @ 20%. */
+.nv-body #city-list > li {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+  height: 28px; padding: 0 6px 0 12px; border-radius: var(--rmf-radius-lg);
+  font-size: 12px; font-weight: 500; line-height: 1;
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-primary) 20%, transparent);
+}
+/* Estado vazio ("Nenhuma cidade cadastrada.") — não é chip */
+.nv-body #city-list > li.italic {
+  background: transparent; color: var(--md-sys-color-on-surface-variant);
+  height: auto; padding: 4px; font-style: italic; font-weight: 400;
+}
+.nv-body #city-list > li > span { opacity: .7; font-size: 10px; }
+/* Botão de remover (×) dentro do chip */
+.nv-body #city-list > li button {
+  width: 18px; height: 18px; flex-shrink: 0; padding: 0;
+  border: none; cursor: pointer; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; color: inherit; opacity: .75; transition: background .15s, opacity .15s;
+}
+.nv-body #city-list > li button:hover {
+  opacity: 1; background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container);
+}
+.nv-divider { padding-top: 16px; border-top: 1px solid var(--md-sys-color-outline-variant); }
+.nv-toggle-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; cursor: pointer; }
+.nv-toggle-row__txt { flex: 1; padding-right: 4px; }
+.nv-toggle-row__txt strong { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--md-sys-color-on-surface); }
+.nv-toggle-row__txt strong i { color: var(--md-sys-color-primary); }
+.nv-toggle-row__txt span { display: block; font-size: 11px; margin-top: 2px; line-height: 1.5; color: var(--md-sys-color-on-surface-variant); }
+.nv-modal__section { display: flex; flex-direction: column; gap: 16px; }
+.nv-modal__section.hidden { display: none; }
+.nv-modal__actions-row { display: flex; gap: 8px; padding-top: 4px; }
+.nv-modal__actions-row .nv-btn { flex: 1; }
+
+/* Conteúdo dos modais ERB/TV (info renderizada pelo JS) */
+.nv-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
+.nv-info-grid > div { display: flex; align-items: center; gap: 6px; }
+.nv-info-grid .col-span-2 { grid-column: span 2; }
+.nv-info-grid i { flex-shrink: 0; opacity: .7; }
+.nv-info-grid .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nv-info-freq {
+  padding: 8px 12px; border-radius: 12px; font-size: 12px;
+  background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface-variant);
+}
+.nv-info-freq__head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.nv-info-freq__head i { color: var(--md-sys-color-primary); }
+.nv-info-freq__head strong { font-weight: 600; color: var(--md-sys-color-on-surface); }
+.nv-info-freq__row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; border-top: 1px solid var(--md-sys-color-outline-variant); }
+.nv-info-freq__row:first-child { border-top: 0; }
+.nv-info-freq__row .mono, .nv-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.nv-muted { color: var(--md-sys-color-on-surface-variant); }
+.nv-strike { color: var(--md-sys-color-error); text-decoration: line-through; }
+.nv-info-callout {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px;
+  font-size: 14px; font-weight: 600;
+}
+.nv-info-callout--marco { background: var(--md-sys-color-warning-container); color: var(--md-sys-color-on-warning-container); }
+.nv-info-callout--marco i { color: var(--md-sys-color-warning); }
+.nv-info-callout--up { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+.nv-info-loading { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
+.nv-info-msg { padding: 8px 12px; border-radius: 12px; font-size: 12px; line-height: 1.6; background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface-variant); }
+.nv-tag-novo, .nv-tag-down {
+  display: inline-flex; align-items: center; margin-left: 4px; padding: 1px 6px; border-radius: 6px;
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; vertical-align: middle;
+}
+.nv-tag-novo { background: var(--md-sys-color-success-container); color: var(--md-sys-color-on-success-container); }
+.nv-tag-down { background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); }
+.nv-tag-novo i, .nv-tag-down i { margin-right: 4px; font-size: 8px; opacity: 1; }
+
+.nv-error { text-align: center; padding: 40px 0; font-weight: 600; color: var(--md-sys-color-error); }
+
+/* ─── Footer ────────────────────────────────────────────────────── */
+.nv-footer { margin-top: 32px; padding: 24px 0 calc(24px + env(safe-area-inset-bottom)); text-align: center; }
+.nv-footer__links { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin-bottom: 12px; }
+.nv-footer__links a { font-size: 14px; color: var(--md-sys-color-primary); text-decoration: none; }
+.nv-footer p { margin: 0; font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
+
+/* App-mode (InAppWebView Flutter / ?embed=1) — esconde header standalone */
+html.app-mode .nv-appbar { display: none; }
+html.app-mode #page-transition { display: none; }
+
+/* ════════════════════════════════════════════════════════════════
+   Utilitários de compatibilidade.
+
+   app-notifications.js (compartilhado, NÃO reescrito) controla os modais
+   de alertas/filtros via classList toggles de `hidden`/`flex`/`inline-flex`
+   /`scale-95` e seções `filtros-section-*`. No modo SPA o Tailwind já provê
+   esses utilitários; no modo standalone (sem Tailwind) eles vêm DAQUI.
+   ════════════════════════════════════════════════════════════════ */
+.nv-body .hidden { display: none; }
+.nv-body .flex { display: flex; }
+.nv-body .inline-flex { display: inline-flex; }
+.nv-body .flex-col { flex-direction: column; }
+.nv-body .scale-95 { transform: scale(.95); }
+
+/* Seções de filtro ERB/TV (IDs exclusivos de novidades): toggle hidden/flex.
+   Os painéis dos modais usam .nv-modal__panel (global-safe) e a animação de
+   escala vem de .nv-modal__panel.scale-95 — sem precisar de regra por ID. */
+#filtros-section-erb, #filtros-section-tv { display: flex; flex-direction: column; gap: 16px; }
+#filtros-section-erb.hidden, #filtros-section-tv.hidden { display: none; }
+#filtros-section-erb.flex, #filtros-section-tv.flex { display: flex; }
+
+/* ════════════════════════════════════════════════════════════════
+   Modal de Notificações redesenhado (espelha o app Flutter):
+   dois cards/balões — "Locais monitorados" (cidades + estados) e
+   "Resumos por IA" — + seletor múltiplo de estados e prévia de
+   notificação. Classes prefixadas .rmf- (renderizadas pelo
+   app-notifications.js compartilhado). Só carregam aqui (standalone
+   /novidades); no SPA o host usa o markup Tailwind próprio.
+   ════════════════════════════════════════════════════════════════ */
+
+/* Modais empilhados sobre o de alertas (estado/prévia) */
+.nv-modal--top { z-index: 2100; }
+
+/* ─── Card / balão de seção ─── */
+.rmf-card {
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 14px; border-radius: var(--rmf-radius-md);
+  background: var(--md-sys-color-surface-container-low);
+  box-shadow: var(--rmf-elev-1);
+}
+.rmf-card.hidden { display: none; }
+.rmf-card__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rmf-card__title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--md-sys-color-on-surface); }
+.rmf-card__title i { color: var(--md-sys-color-primary); font-size: 15px; }
+.rmf-card__info {
+  width: 32px; height: 32px; flex-shrink: 0; border: none; border-radius: 50%;
+  background: transparent; color: var(--md-sys-color-on-surface-variant); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 15px; transition: background .15s;
+}
+.rmf-card__info:hover { background: var(--md-sys-color-surface-container-highest); }
+.rmf-card__divider { height: 1px; background: var(--md-sys-color-outline-variant); margin: 2px 0; }
+
+/* ─── Empty-state de cidades (sugestões em 1 toque) ─── */
+.rmf-empty { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0 2px; }
+.rmf-empty.hidden { display: none; }
+.rmf-empty-title { font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface); text-align: center; }
+.rmf-empty-sub { font-size: 12px; color: var(--md-sys-color-on-surface-variant); text-align: center; margin-bottom: 8px; }
+.rmf-sugg-wrap { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+/* Tipo C — Sugestão = modalBlock + borda divisória (dividerColor / outlineVariant). */
+.rmf-sugg {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+  border-radius: var(--rmf-radius-lg); border: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-container-low); color: var(--md-sys-color-on-surface);
+  font-size: 12px; font-weight: 500; cursor: pointer; transition: background .15s, border-color .15s;
+}
+.rmf-sugg:hover { background: var(--md-sys-color-surface-container); border-color: var(--md-sys-color-primary); }
+.rmf-sugg i { color: var(--md-sys-color-primary); font-size: 11px; }
+
+/* ─── Seção de estados ─── */
+.rmf-states { display: flex; flex-direction: column; gap: 8px; }
+.rmf-states.hidden { display: none; }
+.rmf-states__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rmf-states__label { font-size: 13px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); }
+.rmf-add-btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: none; border-radius: 100px;
+  background: transparent; color: var(--md-sys-color-primary); font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s;
+}
+.rmf-add-btn:hover { background: color-mix(in srgb, var(--md-sys-color-primary) 10%, transparent); }
+.rmf-add-btn i { font-size: 12px; }
+.rmf-states__hint { margin: 0; font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
+.rmf-states__hint.hidden { display: none; }
+.rmf-states__warn { margin: 2px 0 0; font-size: 11px; color: var(--md-sys-color-on-surface-variant); }
+.rmf-states__warn.hidden { display: none; }
+/* ─── "Receber": canais de notificação (rodapé do card de locais) ─── */
+.rmf-channels { display: flex; flex-direction: column; gap: 8px; }
+.rmf-channels.hidden { display: none; }
+.rmf-channels__sub { padding-left: 4px; padding-bottom: 2px; }
+.rmf-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding-top: 2px; }
+.rmf-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px;
+  border-radius: 8px; border: 1px solid var(--md-sys-color-outline);
+  background: transparent; color: var(--md-sys-color-on-surface-variant);
+  font-size: 13px; font-weight: 500; line-height: 1; cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s, padding .12s;
+}
+.rmf-chip:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) 6%, transparent); }
+.rmf-chip__check { font-size: 12px; width: 0; opacity: 0; overflow: hidden; transition: width .12s, opacity .12s; }
+.rmf-chip.is-on {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  border-color: transparent; padding-left: 10px;
+}
+.rmf-chip.is-on .rmf-chip__check { width: 12px; opacity: 1; }
+.rmf-chip--info { border-style: dashed; }
+.rmf-state-list { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.rmf-state-list.hidden { display: none; }
+/* Tipo C — Estado = tertiaryContainer + borda tertiary @ 20% (acento terciário, §3). */
+.rmf-state-list > li {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 6px 0 12px;
+  border-radius: var(--rmf-radius-lg); font-size: 12px; font-weight: 500; line-height: 1;
+  background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-tertiary) 20%, transparent);
+}
+.rmf-state-list > li button {
+  width: 18px; height: 18px; flex-shrink: 0; padding: 0; border: none; cursor: pointer; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; background: transparent; color: inherit;
+  opacity: .75; transition: background .15s, opacity .15s;
+}
+.rmf-state-list > li button:hover { opacity: 1; background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); }
+
+/* ─── Frequência segmentada (Resumo das ERBs) ─── */
+.rmf-seg { display: flex; border: 1px solid var(--md-sys-color-outline); border-radius: 100px; overflow: hidden; }
+.rmf-seg.hidden { display: none; }
+.rmf-seg__btn {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 10px;
+  border: none; background: transparent; color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px; font-weight: 500; cursor: pointer; transition: background .15s, color .15s;
+}
+.rmf-seg__btn + .rmf-seg__btn { border-left: 1px solid var(--md-sys-color-outline); }
+.rmf-seg__btn i { font-size: 12px; }
+.rmf-seg__btn.is-active { background: var(--rmf-select-fill); color: var(--md-sys-color-primary); font-weight: 600; }
+
+/* ─── Seletor múltiplo de estados ─── */
+.rmf-sp-list { display: flex; flex-direction: column; }
+.rmf-sp-region {
+  font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--md-sys-color-primary); padding: 14px 4px 6px;
+}
+.rmf-sp-region:first-child { padding-top: 4px; }
+.rmf-sp-item { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 12px; cursor: pointer; transition: background .12s; }
+.rmf-sp-item:hover { background: var(--md-sys-color-surface-container); }
+.rmf-sp-item input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.rmf-sp-box {
+  width: 22px; height: 22px; flex-shrink: 0; border-radius: 6px; border: 2px solid var(--md-sys-color-outline);
+  display: inline-flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-primary);
+  transition: background .12s, border-color .12s;
+}
+.rmf-sp-box i { font-size: 11px; opacity: 0; transition: opacity .12s; }
+.rmf-sp-item.is-checked .rmf-sp-box { background: var(--md-sys-color-primary); border-color: var(--md-sys-color-primary); }
+.rmf-sp-item.is-checked .rmf-sp-box i { opacity: 1; }
+.rmf-sp-name { flex: 1; font-size: 14px; color: var(--md-sys-color-on-surface); }
+.rmf-sp-uf { font-size: 11px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); }
+.rmf-sp-empty { padding: 24px 0; text-align: center; font-size: 13px; color: var(--md-sys-color-on-surface-variant); }
+
+/* ─── Prévia de notificação (balão + dots) ─── */
+.rmf-preview-label { font-size: 10px; font-weight: 700; letter-spacing: .06em; color: var(--md-sys-color-on-surface-variant); }
+.rmf-bubble {
+  display: flex; gap: 12px; padding: 12px; border-radius: 14px;
+  border: 1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface-container-highest);
+}
+.rmf-bubble__icon {
+  width: 38px; height: 38px; flex-shrink: 0; border-radius: 9px; font-size: 18px;
+  background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.rmf-bubble__body { flex: 1; min-width: 0; }
+.rmf-bubble__head { display: flex; align-items: center; }
+.rmf-bubble__head strong { font-size: 13px; font-weight: 700; color: var(--md-sys-color-on-surface); }
+.rmf-bubble__head span { font-size: 11px; color: var(--md-sys-color-on-surface-variant); }
+.rmf-bubble__text { margin-top: 3px; font-size: 13px; line-height: 1.35; color: var(--md-sys-color-on-surface); }
+.rmf-dots { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.rmf-dot { width: 6px; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 35%, transparent); cursor: pointer; transition: width .2s, background .2s; }
+.rmf-dot.is-active { width: 18px; background: var(--md-sys-color-primary); }
+
+/* Badge de contagem no FAB de filtros (ID exclusivo): toggle hidden/inline-flex. */
+#novidades-fab-filtros-count { display: none; }
+#novidades-fab-filtros-count.inline-flex { display: inline-flex; }
+#novidades-fab-filtros-count.hidden { display: none; }
+
+/* ─────────────────────────────────────────────────────────────────
+   4. FONTES DE ÍCONE — fa-rmf + fa-sparkles + fa-sei (url ../webfonts → absoluto)
+   ───────────────────────────────────────────────────────────────── */
+/* Logo RMF (torres + mapa do Brasil) como glifo de fonte, embutido no Font Awesome v7.
+   Vetorizado a partir de /res/icon.svg. Glyph próprio em U+E901, família dedicada
+   "RMF Brand" (não interfere nas famílias do FA nem no fa-sparkles "RMF Icons").
+   Uso no HTML: <i class="fa-solid fa-rmf"></i>  (herda color e font-size). */
+@font-face{font-family:"RMF Brand";font-style:normal;font-weight:400;font-display:block;src:url(/res/fonts/fa/webfonts/fa-rmf.woff2?v=2) format("woff2")}
+.fa-rmf{--fa-family:"RMF Brand";--fa-style:400;--fa:"\e901"}
+/* Ícone customizado "sparkles" (✨) embutido no Font Awesome v7.
+   Glyph próprio em U+E900, família dedicada "RMF Icons" (não interfere nas famílias do FA).
+   Uso no HTML: <i class="fa-solid fa-sparkles"></i>  (herda color e font-size). */
+@font-face{font-family:"RMF Icons";font-style:normal;font-weight:400;font-display:block;src:url(/res/fonts/fa/webfonts/fa-sparkles.woff2) format("woff2")}
+.fa-sparkles{--fa-family:"RMF Icons";--fa-style:400;--fa:"\e900"}
+/* Logo "sei!" (SEI/Anatel) como glifo de fonte, embutido no Font Awesome v7.
+   Vetorizado a partir de sei.png (potrace, monocor). Glyph próprio em U+E903,
+   família dedicada "RMF SEI" (não interfere nas famílias do FA).
+   Uso no HTML: <i class="fa-solid fa-sei"></i>  (herda color e font-size). */
+@font-face{font-family:"RMF SEI";font-style:normal;font-weight:400;font-display:block;src:url(/res/fonts/fa/webfonts/fa-sei.woff2) format("woff2")}
+.fa-sei{--fa-family:"RMF SEI";--fa-style:400;--fa:"\e903"}

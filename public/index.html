@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>U Local AI · Prompt API</title>
+<meta name="description" content="A testbed for Chrome's Prompt API, nothing more. A fully local chat with on-device model status, download progress, tunable parameters and history kept in the browser.">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D0E13" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="U Local AI">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="512x512" href="/res/icon-512.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/res/icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/res/favicon-32.png">
+<link rel="apple-touch-icon" href="/res/apple-touch-icon.png">
+
+<!-- Brand design system (M3 tokens + Inter) + Font Awesome -->
+<link rel="stylesheet" href="/res/fonts/fonts.css">
+<link rel="stylesheet" href="/res/fonts/fa/css/all.min.css">
+<link rel="stylesheet" href="/res/assets/css/rmf.css">
+<style>
+/* ══ U Local AI — every value comes from the rmf.css tokens ══ */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overscroll-behavior:none}
+body{
+  font-family:var(--md-ref-typeface-plain);
+  background:var(--md-sys-color-background);color:var(--md-sys-color-on-surface);
+  -webkit-font-smoothing:antialiased;
+}
+.hidden{display:none!important}
+.mono{font-family:ui-monospace,SFMono-Regular,'Roboto Mono',Menlo,monospace}
+button{font:inherit}
+
+/* Brand mark: the brain SVG painted as a mask, so it takes the current text
+   colour and flips with the theme instead of being a fixed-colour bitmap. */
+.brainmark{
+  display:inline-block;background:currentColor;
+  -webkit-mask:url(/res/icon.svg) center/contain no-repeat;
+          mask:url(/res/icon.svg) center/contain no-repeat;
+}
+
+/* ── Shell: sidebar + conversation ─────────────────────────── */
+.shell{display:flex;height:100dvh;overflow:hidden}
+
+/* ── Sidebar ───────────────────────────────────────────────── */
+.sb{
+  position:relative;
+  width:var(--sb-w,270px);flex:0 0 auto;display:flex;flex-direction:column;gap:8px;
+  padding:12px 12px calc(12px + env(safe-area-inset-bottom));
+  background:var(--md-sys-color-surface-container-low);
+  border-right:1px solid var(--md-sys-color-outline-variant);
+  transition:margin-left .22s ease;
+}
+.sb.is-collapsed{margin-left:calc((var(--sb-w,270px) + 1px) * -1)}
+
+/* Drag handle on the right edge: a wide invisible grab area with a thin
+   visible line, so the target is easy to hit without a chunky border. */
+.sb__resizer{
+  position:absolute;top:0;right:-3px;bottom:0;width:7px;z-index:2;
+  cursor:col-resize;touch-action:none;
+}
+.sb__resizer::after{
+  content:"";position:absolute;top:0;bottom:0;left:3px;width:1px;
+  background:transparent;transition:background .15s;
+}
+.sb__resizer:hover::after,.sb.is-resizing .sb__resizer::after{background:var(--md-sys-color-primary)}
+.sb.is-resizing{transition:none;user-select:none}
+body.is-resizing{cursor:col-resize;user-select:none}
+.sb__head{display:flex;align-items:center;gap:10px;padding:4px 4px 2px;min-height:44px}
+.sb__logo{
+  width:32px;height:32px;flex:0 0 auto;border-radius:10px;display:grid;place-items:center;font-size:.95rem;
+  background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary);
+}
+.sb__logo .brainmark{width:19px;height:19px}
+.sb__brand{font-family:var(--md-ref-typeface-brand);font-size:.95rem;font-weight:700;letter-spacing:-.01em;flex:1;min-width:0}
+.sb__brand small{display:block;font-size:.66rem;font-weight:500;color:var(--md-sys-color-on-surface-variant);letter-spacing:.02em}
+
+.new-chat{
+  display:flex;align-items:center;gap:10px;width:100%;height:42px;padding:0 14px;cursor:pointer;
+  border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--rmf-radius-full);
+  background:var(--md-sys-color-surface);color:var(--md-sys-color-on-surface);
+  font-size:.88rem;font-weight:600;transition:background .15s,border-color .15s;
+}
+.new-chat:hover{background:var(--md-sys-color-surface-container-high);border-color:var(--md-sys-color-primary)}
+.new-chat i{color:var(--md-sys-color-primary);font-size:.8rem}
+
+.sb__label{padding:10px 8px 2px;font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--md-sys-color-on-surface-variant)}
+
+/* History search */
+.sb__search{position:relative;margin:2px 0 4px}
+.sb__search i{
+  position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;
+  font-size:.72rem;color:var(--md-sys-color-on-surface-variant);
+}
+.sb__search input{
+  width:100%;height:36px;padding:0 32px 0 32px;font:inherit;font-size:.82rem;
+  border-radius:var(--rmf-radius-full);border:1px solid transparent;
+  background:var(--md-sys-color-surface-container-high);color:var(--md-sys-color-on-surface);
+  transition:border-color .15s,background .15s;
+}
+.sb__search input::placeholder{color:var(--md-sys-color-on-surface-variant)}
+.sb__search input:focus{outline:none;border-color:var(--md-sys-color-primary);background:var(--md-sys-color-surface)}
+.sb__search button{
+  position:absolute;right:5px;top:50%;transform:translateY(-50%);
+  width:26px;height:26px;border:none;border-radius:50%;background:transparent;cursor:pointer;
+  color:var(--md-sys-color-on-surface-variant);font-size:.7rem;display:grid;place-items:center;
+}
+.sb__search button:hover{background:var(--md-sys-color-surface-container-highest)}
+.sb__search button.hidden{display:none}
+mark{background:var(--rmf-select-fill);color:inherit;border-radius:3px;padding:0 1px}
+.sb__list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin:0 -4px;padding:0 4px}
+.sb__list::-webkit-scrollbar{width:6px}
+.sb__list::-webkit-scrollbar-thumb{background:var(--md-sys-color-outline-variant);border-radius:3px}
+
+.conv{
+  display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:var(--rmf-radius-md);cursor:pointer;
+  color:var(--md-sys-color-on-surface-variant);transition:background .12s,color .12s;
+}
+.conv:hover{background:var(--md-sys-color-surface-container-high);color:var(--md-sys-color-on-surface)}
+.conv.is-active{background:var(--rmf-select-fill);color:var(--md-sys-color-primary);font-weight:600}
+.conv__title{flex:1;min-width:0;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv__del{
+  width:26px;height:26px;flex:0 0 auto;border:none;border-radius:50%;background:transparent;cursor:pointer;
+  color:inherit;opacity:0;font-size:.7rem;display:grid;place-items:center;transition:opacity .12s,background .12s;
+}
+.conv:hover .conv__del,.conv.is-active .conv__del{opacity:.55}
+.conv__del:hover{opacity:1!important;background:var(--rmf-danger-fill);color:var(--rmf-danger)}
+.sb__empty{padding:14px 10px;font-size:.78rem;line-height:1.5;color:var(--md-sys-color-on-surface-variant)}
+
+.sb__foot{display:flex;flex-direction:column;gap:2px;padding-top:8px;border-top:1px solid var(--md-sys-color-outline-variant)}
+.sb__item{
+  display:flex;align-items:center;gap:10px;width:100%;padding:10px;border:none;border-radius:var(--rmf-radius-md);
+  background:transparent;color:var(--md-sys-color-on-surface-variant);font-size:.84rem;cursor:pointer;
+  text-align:left;transition:background .12s;
+}
+.sb__item:hover{background:var(--md-sys-color-surface-container-high)}
+.sb__item i{width:16px;text-align:center}
+/* :not(.badge-dot) matters — the status dot is a span too, and flex:1 would
+   stretch its 8px circle into an ellipse across the whole row. */
+.sb__item span:not(.badge-dot){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Model dot */
+.badge-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;background:var(--md-sys-color-outline)}
+.badge-dot.is-ok{background:var(--rmf-success)}
+.badge-dot.is-warn{background:var(--rmf-warning)}
+.badge-dot.is-err{background:var(--rmf-danger)}
+.badge-dot.is-busy{background:var(--rmf-info);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* Sidebar scrim (mobile drawer) */
+.sb-scrim{
+  position:fixed;inset:0;z-index:40;display:none;
+  background:color-mix(in srgb,var(--md-sys-color-scrim) 45%,transparent);backdrop-filter:blur(2px);
+}
+.sb-scrim.is-on{display:block}
+
+/* ── Conversation column ───────────────────────────────────── */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}
+
+.topbar{
+  flex:0 0 auto;display:flex;align-items:center;gap:6px;
+  padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
+  border-bottom:1px solid transparent;background:var(--md-sys-color-background);
+  transition:border-color .2s,background .2s;z-index:5;
+}
+.topbar.is-scrolled{border-bottom-color:var(--md-sys-color-outline-variant)}
+.topbar__title{
+  flex:1;min-width:0;font-size:.95rem;font-weight:600;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px;
+}
+.icon-btn{
+  width:40px;height:40px;flex:0 0 auto;border:none;border-radius:50%;background:transparent;
+  color:var(--md-sys-color-on-surface-variant);font-size:1rem;cursor:pointer;display:grid;place-items:center;
+  transition:background .15s;
+}
+.icon-btn:hover{background:var(--md-sys-color-surface-container-high)}
+
+/* Install PWA — only rendered once the browser fires beforeinstallprompt */
+.install-btn{
+  display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;flex:0 0 auto;cursor:pointer;
+  border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--rmf-radius-full);
+  background:var(--md-sys-color-secondary-container);color:var(--md-sys-color-on-secondary-container);
+  font-size:.78rem;font-weight:600;transition:filter .15s,transform .15s;
+}
+.install-btn:hover{filter:brightness(1.04);transform:translateY(-1px)}
+.install-btn i{font-size:.74rem}
+@media (max-width:560px){ .install-btn span{display:none} .install-btn{padding:0 11px} }
+
+/* Scroll area */
+.scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.wrap{max-width:768px;margin:0 auto;padding:16px 20px 8px;width:100%}
+
+/* ── Messages ──────────────────────────────────────────────── */
+.msgs{display:flex;flex-direction:column;gap:22px;padding-bottom:12px}
+.msg{display:flex;gap:12px;animation:rise .22s ease}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.msg__ic{
+  width:30px;height:30px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;font-size:.72rem;margin-top:1px;
+  background:var(--md-sys-color-surface-container-highest);color:var(--md-sys-color-on-surface-variant);
+}
+.msg--user .msg__ic{background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary)}
+.msg--ai .msg__ic{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-on-tertiary-container)}
+.msg__ic .brainmark{width:17px;height:17px}
+.msg--err .msg__ic{background:var(--rmf-danger-fill);color:var(--rmf-danger)}
+.msg__body{flex:1;min-width:0}
+.msg__who{font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--md-sys-color-on-surface-variant)}
+.msg__text{margin-top:5px;font-size:.95rem;line-height:1.62;overflow-wrap:anywhere;white-space:pre-wrap}
+.msg--err .msg__text{color:var(--md-sys-color-error)}
+.msg__text code{
+  font-family:ui-monospace,SFMono-Regular,'Roboto Mono',Menlo,monospace;font-size:.86em;
+  padding:.12em .4em;border-radius:6px;background:var(--md-sys-color-surface-container-high);
+}
+.msg__text pre{
+  margin:10px 0;padding:12px 14px;border-radius:var(--rmf-radius-md);overflow-x:auto;white-space:pre;
+  background:var(--md-sys-color-surface-container-high);
+}
+.msg__text pre code{background:none;padding:0;font-size:.82rem;line-height:1.55}
+.msg__tools{display:flex;gap:2px;margin-top:6px;opacity:0;transition:opacity .15s}
+.msg:hover .msg__tools{opacity:1}
+.msg__tool{
+  height:28px;padding:0 9px;border:none;border-radius:var(--rmf-radius-sm);background:transparent;cursor:pointer;
+  color:var(--md-sys-color-on-surface-variant);font-size:.7rem;display:inline-flex;align-items:center;gap:6px;
+  transition:background .12s;
+}
+.msg__tool:hover{background:var(--md-sys-color-surface-container-high);color:var(--md-sys-color-on-surface)}
+
+/* Typing indicator */
+.typing{display:inline-flex;gap:4px;align-items:center;height:1.62em}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--md-sys-color-primary);opacity:.4;animation:bounce 1.1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-4px);opacity:1}}
+
+/* ── Welcome screen ────────────────────────────────────────── */
+.welcome{max-width:640px;margin:0 auto;padding:min(9vh,72px) 20px 24px;text-align:center;animation:rise .3s ease}
+.welcome__logo{
+  width:64px;height:64px;margin:0 auto 20px;border-radius:20px;display:grid;place-items:center;font-size:1.6rem;
+  background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container);
+  box-shadow:var(--rmf-elev-1);
+}
+.welcome__logo .brainmark{width:36px;height:36px}
+.welcome h2{font-family:var(--md-ref-typeface-brand);font-size:1.75rem;font-weight:600;letter-spacing:-.025em;margin:0}
+.welcome > p{margin:10px auto 0;max-width:30rem;font-size:.92rem;line-height:1.6;color:var(--md-sys-color-on-surface-variant)}
+.welcome .purpose{
+  display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:7px 14px;
+  border-radius:var(--rmf-radius-full);font-size:.76rem;line-height:1.4;
+  background:var(--rmf-info-fill);color:var(--md-sys-color-on-surface-variant);
+}
+.welcome .purpose i{color:var(--rmf-info)}
+.welcome .purpose b{color:var(--md-sys-color-on-surface);font-weight:600}
+
+/* Model call-to-action */
+.setup{
+  margin-top:26px;padding:18px;border-radius:var(--rmf-radius-lg);text-align:left;
+  background:var(--md-sys-color-surface-container-low);border:1px solid var(--md-sys-color-outline-variant);
+  display:flex;flex-direction:column;gap:14px;
+}
+.setup__head{display:flex;align-items:center;gap:13px}
+.setup__ic{
+  width:44px;height:44px;flex:0 0 auto;border-radius:14px;display:grid;place-items:center;font-size:1.05rem;
+  background:var(--md-sys-color-surface-container-highest);color:var(--md-sys-color-on-surface-variant);
+}
+.setup__ic.is-ok{background:var(--rmf-success-fill);color:var(--rmf-success)}
+.setup__ic.is-warn{background:var(--rmf-warning-fill);color:var(--rmf-warning)}
+.setup__ic.is-err{background:var(--rmf-danger-fill);color:var(--rmf-danger)}
+.setup__ic.is-busy{background:var(--rmf-info-fill);color:var(--rmf-info)}
+.setup__txt{flex:1;min-width:0}
+.setup__txt strong{display:block;font-size:.92rem;font-weight:700}
+.setup__txt span{display:block;margin-top:2px;font-size:.79rem;line-height:1.5;color:var(--md-sys-color-on-surface-variant)}
+.setup__row{display:flex;gap:8px;flex-wrap:wrap}
+.setup__row .nv-btn{flex:1;min-width:150px}
+
+/* Download progress */
+.dl{display:flex;flex-direction:column;gap:7px}
+.dl-bar{height:8px;border-radius:var(--rmf-radius-full);overflow:hidden;background:var(--md-sys-color-surface-container-highest)}
+.dl-fill{height:100%;width:0%;border-radius:var(--rmf-radius-full);background:var(--md-sys-color-primary);transition:width .3s ease}
+.dl-meta{display:flex;justify-content:space-between;font-size:.72rem;color:var(--md-sys-color-on-surface-variant)}
+
+/* Suggestion cards */
+.suggs{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:26px}
+.sugg{
+  display:flex;flex-direction:column;gap:6px;padding:14px;cursor:pointer;text-align:left;
+  border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--rmf-radius-md);
+  background:var(--md-sys-color-surface);color:var(--md-sys-color-on-surface);
+  transition:background .15s,border-color .15s,transform .15s;
+}
+.sugg:hover{background:var(--md-sys-color-surface-container);border-color:var(--md-sys-color-primary);transform:translateY(-2px)}
+.sugg i{font-size:.85rem;color:var(--md-sys-color-primary)}
+.sugg b{font-size:.83rem;font-weight:600}
+.sugg span{font-size:.74rem;line-height:1.45;color:var(--md-sys-color-on-surface-variant)}
+
+/* ── Composer ──────────────────────────────────────────────── */
+.composer-wrap{
+  flex:0 0 auto;padding:6px 20px calc(14px + env(safe-area-inset-bottom));
+  background:linear-gradient(transparent,var(--md-sys-color-background) 42%);
+}
+.composer{max-width:768px;margin:0 auto;display:flex;gap:8px;align-items:flex-end;
+  padding:8px;border-radius:26px;border:1px solid var(--md-sys-color-outline-variant);
+  background:var(--md-sys-color-surface-container-low);transition:border-color .15s,box-shadow .15s;
+}
+.composer:focus-within{border-color:var(--md-sys-color-primary);box-shadow:0 0 0 1px var(--md-sys-color-primary)}
+.composer textarea{
+  flex:1;resize:none;border:none;outline:none;background:none;color:inherit;
+  font:inherit;font-size:.95rem;line-height:1.5;padding:10px 8px 10px 12px;min-height:42px;max-height:180px;
+}
+.composer textarea::placeholder{color:var(--md-sys-color-on-surface-variant)}
+.send-btn{
+  width:40px;height:40px;flex:0 0 auto;border:none;border-radius:50%;cursor:pointer;display:grid;place-items:center;
+  font-size:.92rem;background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary);transition:filter .15s,opacity .15s;
+}
+.send-btn:hover:not(:disabled){filter:brightness(1.06)}
+.send-btn:disabled{opacity:.35;cursor:not-allowed}
+.send-btn.is-stop{background:var(--md-sys-color-error);color:var(--md-sys-color-on-error)}
+.composer-hint{
+  max-width:768px;margin:7px auto 0;text-align:center;font-size:.68rem;line-height:1.4;
+  color:var(--md-sys-color-on-surface-variant);
+}
+
+/* ── Settings modal ────────────────────────────────────────── */
+.set-sec{display:flex;flex-direction:column;gap:12px}
+.set-sec__title{
+  font-size:.64rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--md-sys-color-on-surface-variant);
+}
+.set-div{height:1px;background:var(--md-sys-color-outline-variant)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px}
+.kv > div{padding:9px 12px;border-radius:var(--rmf-radius-md);background:var(--md-sys-color-surface-container)}
+.kv dt{margin:0;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--md-sys-color-on-surface-variant)}
+.kv dd{margin:3px 0 0;font-size:.86rem;font-weight:600}
+.ctl{display:flex;flex-direction:column;gap:5px}
+.ctl-head{display:flex;justify-content:space-between;align-items:baseline;font-size:.82rem}
+.ctl-head b{font-weight:600}
+.ctl input[type=range]{width:100%;accent-color:var(--md-sys-color-primary)}
+.set-row{display:flex;gap:8px;flex-wrap:wrap}
+.set-row .nv-btn{flex:1;min-width:140px}
+textarea.nv-input{min-height:76px;resize:vertical;line-height:1.5;font:inherit;font-size:.86rem}
+.evlog{
+  max-height:150px;overflow-y:auto;margin:0;padding:10px 12px;border-radius:var(--rmf-radius-md);
+  background:var(--md-sys-color-surface-container);font-size:.7rem;line-height:1.65;
+  display:flex;flex-direction:column;gap:1px;
+}
+.evlog span{color:var(--md-sys-color-on-surface-variant)}
+.evlog b{color:var(--md-sys-color-primary);font-weight:600}
+.seg{display:flex;border:1px solid var(--md-sys-color-outline);border-radius:var(--rmf-radius-full);overflow:hidden}
+.seg button{
+  flex:1;height:36px;border:none;background:transparent;cursor:pointer;font-size:.78rem;
+  color:var(--md-sys-color-on-surface-variant);display:inline-flex;align-items:center;justify-content:center;gap:6px;
+}
+.seg button + button{border-left:1px solid var(--md-sys-color-outline)}
+.seg button.is-active{background:var(--rmf-select-fill);color:var(--md-sys-color-primary);font-weight:600}
+
+/* ── Incompatibility modal (big, blocking) ─────────────────── */
+.blocker{z-index:2500}
+.blocker .nv-modal__panel{max-width:38rem}
+.incompat{padding:30px 26px 26px;text-align:center}
+.incompat__ic{
+  width:76px;height:76px;margin:0 auto 20px;border-radius:24px;display:grid;place-items:center;font-size:1.9rem;
+  background:var(--rmf-danger-fill);color:var(--rmf-danger);
+}
+.incompat h2{font-family:var(--md-ref-typeface-brand);font-size:1.4rem;font-weight:600;letter-spacing:-.02em;margin:0}
+.incompat > p{margin:10px auto 0;max-width:30rem;font-size:.88rem;line-height:1.6;color:var(--md-sys-color-on-surface-variant)}
+.reqs{
+  margin-top:22px;text-align:left;display:flex;flex-direction:column;gap:2px;
+  border-radius:var(--rmf-radius-md);background:var(--md-sys-color-surface-container-low);padding:6px;
+}
+.req{display:flex;align-items:flex-start;gap:12px;padding:11px 12px;border-radius:var(--rmf-radius-sm)}
+.req + .req{border-top:1px solid var(--md-sys-color-outline-variant)}
+.req__ic{
+  width:28px;height:28px;flex:0 0 auto;border-radius:9px;display:grid;place-items:center;font-size:.72rem;
+  background:var(--md-sys-color-surface-container-highest);color:var(--md-sys-color-on-surface-variant);
+}
+.req__ic.is-ok{background:var(--rmf-success-fill);color:var(--rmf-success)}
+.req__ic.is-err{background:var(--rmf-danger-fill);color:var(--rmf-danger)}
+.req__txt{flex:1;min-width:0;font-size:.82rem;line-height:1.5}
+.req__txt b{display:block;font-weight:600;color:var(--md-sys-color-on-surface)}
+.req__txt span{color:var(--md-sys-color-on-surface-variant)}
+.req__txt code{
+  font-family:ui-monospace,SFMono-Regular,'Roboto Mono',Menlo,monospace;font-size:.94em;
+  padding:.1em .35em;border-radius:5px;background:var(--md-sys-color-surface-container-high);
+}
+.incompat__foot{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px}
+.incompat__foot .nv-btn{flex:1;min-width:150px}
+.incompat__note{margin:16px 0 0;font-size:.72rem;line-height:1.5;color:var(--md-sys-color-on-surface-variant)}
+
+/* ── About modal ───────────────────────────────────────────── */
+.abt-body{color:var(--md-sys-color-on-surface-variant);font-size:.84rem;line-height:1.6;gap:0}
+.abt-head{display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:6px}
+.abt-icon{
+  width:92px;height:92px;border-radius:26px;overflow:hidden;display:grid;place-items:center;
+  box-shadow:var(--rmf-elev-2);
+}
+.abt-icon img{width:100%;height:100%;display:block}
+.abt-name{margin-top:16px;font-family:var(--md-ref-typeface-brand);font-size:1.22rem;font-weight:700;letter-spacing:-.02em;color:var(--md-sys-color-on-surface)}
+.abt-ver{margin-top:2px;font-size:.76rem;color:var(--md-sys-color-on-surface-variant)}
+.abt-slogan{margin-top:18px;text-align:center;font-size:.9rem;color:var(--md-sys-color-on-surface)}
+.abt-credit{
+  display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;
+  font-size:.8rem;color:var(--md-sys-color-primary);text-decoration:none;
+}
+.abt-credit i{font-size:.76rem}
+.abt-credit__link{font-weight:600}
+.abt-credit__year{color:var(--md-sys-color-on-surface-variant)}
+
+.abt-label{
+  margin-bottom:8px;font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--md-sys-color-on-surface-variant);
+}
+.abt-card{
+  padding:14px 16px;border-radius:var(--rmf-radius-md);font-size:.82rem;line-height:1.6;
+  background:var(--md-sys-color-surface-container-low);border:1px solid var(--md-sys-color-outline-variant);
+}
+.abt-card b{color:var(--md-sys-color-on-surface)}
+.abt-card code{
+  font-family:ui-monospace,SFMono-Regular,'Roboto Mono',Menlo,monospace;font-size:.92em;
+  padding:.08em .34em;border-radius:5px;background:var(--md-sys-color-surface-container-high);
+}
+.abt-card hr{border:0;border-top:1px solid var(--md-sys-color-outline-variant);margin:12px 0 0}
+.abt-src{margin-bottom:7px;display:flex;gap:8px}
+.abt-src i{color:var(--md-sys-color-primary);font-size:.74rem;margin-top:.34em;flex:0 0 auto}
+
+.abt-grid{display:flex;flex-direction:column;gap:2px}
+.abt-sync{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;
+  border-radius:var(--rmf-radius-sm);background:var(--md-sys-color-surface-container);font-size:.8rem;
+}
+.abt-sync__l{display:inline-flex;align-items:center;gap:8px}
+.abt-sync__l i{color:var(--md-sys-color-primary);font-size:.74rem;width:14px;text-align:center}
+.abt-sync__v{
+  font-family:ui-monospace,SFMono-Regular,'Roboto Mono',Menlo,monospace;font-size:.76rem;
+  color:var(--md-sys-color-on-surface);text-align:right;overflow-wrap:anywhere;
+}
+
+.abt-tile{
+  display:flex;align-items:center;gap:12px;padding:13px 14px;margin-bottom:2px;cursor:pointer;
+  border-radius:var(--rmf-radius-md);background:var(--md-sys-color-surface-container);
+  color:var(--md-sys-color-on-surface);font-size:.85rem;transition:background .12s;
+  border:none;width:100%;text-align:left;text-decoration:none;
+}
+.abt-tile:hover{background:var(--md-sys-color-surface-container-high)}
+.abt-tile > i:first-child{color:var(--md-sys-color-primary);width:16px;text-align:center;font-size:.86rem}
+.abt-tile__t{flex:1;min-width:0}
+.abt-tile__chev{font-size:.7rem;color:var(--md-sys-color-on-surface-variant)}
+.abt-foot{
+  margin-top:24px;text-align:center;font-size:.72rem;line-height:1.6;
+  color:var(--md-sys-color-on-surface-variant);
+}
+.abt-foot a{color:var(--md-sys-color-primary);text-decoration:none}
+
+/* Toast */
+.toast{
+  position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,14px);
+  z-index:3000;padding:11px 18px;border-radius:var(--rmf-radius-full);font-size:.82rem;
+  background:var(--md-sys-color-inverse-surface);color:var(--md-sys-color-inverse-on-surface);
+  box-shadow:var(--rmf-elev-2);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+}
+.toast.is-on{opacity:1;transform:translate(-50%,0)}
+
+/* Same pill, anchored to the bottom-right corner and interactive. */
+.toast--notify{
+  right:calc(16px + env(safe-area-inset-right));left:auto;transform:translate(0,14px);
+  display:flex;align-items:center;gap:10px;max-width:min(360px,calc(100vw - 32px));
+  padding:10px 10px 10px 16px;text-align:left;
+}
+.toast--notify.is-on{transform:translate(0,0);pointer-events:auto}
+.toast--notify i{opacity:.8}
+.toast--notify button{
+  flex:none;border:0;cursor:pointer;font:inherit;font-weight:600;
+  background:var(--md-sys-color-inverse-primary);color:var(--md-sys-color-on-primary-container,#000);
+  padding:6px 14px;border-radius:var(--rmf-radius-full);
+}
+.toast--notify .toast__x{
+  background:transparent;color:inherit;padding:6px 8px;font-weight:400;opacity:.7;
+}
+.toast--notify .toast__x:hover{opacity:1}
+@media (max-width:900px){
+  .toast--notify{left:12px;right:12px;max-width:none;bottom:calc(96px + env(safe-area-inset-bottom))}
+  /* full-width on mobile, so the corner anchoring stops mattering */
+}
+
+/* ── Window Controls Overlay ───────────────────────────────────
+   Installed on desktop, the manifest asks Chrome to hand the title bar over
+   to the page. Chrome then paints only its own buttons and exposes the free
+   strip through the titlebar-area-* env vars, which follow the buttons to the
+   left on macOS and to the right on Windows. The strip is a drag handle: it
+   is the only way left to move the window, so nothing interactive goes in it
+   (anything that must be clickable needs app-region:no-drag).
+   The class is toggled from JS — the env vars alone would resolve to their
+   fallbacks in a normal tab and silently shift the layout.
+   The top row of the app *is* the title bar: the conversation bar on the
+   right, the sidebar head on the left. Both become drag handles — with the
+   native bar gone, they are the only way left to move the window — so every
+   control inside them opts back out with app-region:no-drag.
+   The window buttons overlap that row, and which corner they take depends on
+   the platform (left on macOS, right on Windows), so the insets are measured
+   in JS against each element and land here as custom properties. */
+html.is-wco .topbar,
+html.is-wco .sb__head{-webkit-app-region:drag;app-region:drag}
+html.is-wco .topbar{
+  padding-top:10px;
+  /* The var() fallbacks are the env() maths on their own: correct for the
+     right corner in every case, and for the left corner whenever the sidebar
+     is not there to absorb it. JS refines them once it has a real rect. */
+  padding-left:calc(14px + var(--wco-left,0px));
+  padding-right:calc(14px + var(--wco-right,
+    max(0px, 100vw - env(titlebar-area-x,0px) - env(titlebar-area-width,100vw))));
+  min-height:calc(env(titlebar-area-height,33px) + 10px);
+}
+/* Nothing can shift sideways in the sidebar head, so it drops below instead. */
+html.is-wco .sb__head{padding-top:calc(4px + var(--wco-head,env(titlebar-area-height,0px)))}
+html.is-wco .topbar > *,
+html.is-wco .sb__head > *{-webkit-app-region:no-drag;app-region:no-drag}
+/* The title itself stays draggable: it is the natural place to grab. */
+html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
+
+/* ── Mobile: the sidebar becomes a drawer ──────────────────── */
+@media (max-width:900px){
+  .sb{
+    position:fixed;top:0;bottom:0;left:0;z-index:50;width:82vw;max-width:300px;
+    box-shadow:var(--rmf-elev-modal);margin-left:0;transform:translateX(-102%);
+    transition:transform .22s ease;padding-top:calc(12px + env(safe-area-inset-top));
+  }
+  .sb.is-open{transform:none}
+  .sb.is-collapsed{margin-left:0}
+  .wrap{padding:14px 16px 8px}
+  .composer-wrap{padding-left:12px;padding-right:12px}
+  .welcome{padding-top:6vh}
+  .welcome h2{font-size:1.45rem}
+  .msg__tools{opacity:1}
+  .incompat{padding:24px 18px 20px}
+  .incompat__ic{width:64px;height:64px;font-size:1.55rem}
+}
+@media (max-width:900px){ .sb__resizer{display:none} }
+@media (min-width:901px){ .sb__close,.sb-scrim{display:none!important} }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ══ Sidebar ══ -->
+  <aside class="sb" id="sb">
+    <div class="sb__head">
+      <div class="sb__logo"><span class="brainmark"></span></div>
+      <div class="sb__brand">U Local AI<small data-i18n="brand.sub">Prompt API · on-device</small></div>
+      <button class="icon-btn sb__close" id="btn-sb-close" type="button" data-i18n-aria="a11y.closeMenu">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <button class="new-chat" id="btn-new" type="button"><i class="fa-solid fa-plus"></i> <span data-i18n="sb.newChat">New chat</span></button>
+
+    <div class="sb__label" data-i18n="sb.history">History</div>
+    <div class="sb__search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="search" id="in-search" autocomplete="off" data-i18n-ph="sb.search">
+      <button class="hidden" id="btn-search-clear" type="button" data-i18n-aria="sb.clearSearch">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="sb__list" id="chat-list"></div>
+
+    <div class="sb__foot">
+      <button class="sb__item" id="btn-settings-sb" type="button">
+        <i class="fa-solid fa-microchip"></i>
+        <span id="sb-model-label">…</span>
+        <span class="badge-dot" id="sb-dot"></span>
+      </button>
+      <button class="sb__item" id="btn-settings-sb2" type="button">
+        <i class="fa-solid fa-sliders"></i> <span data-i18n="sb.settings">Settings</span>
+      </button>
+      <button class="sb__item" id="btn-about-sb" type="button">
+        <i class="fa-solid fa-circle-info"></i> <span data-i18n="set.about">About</span>
+      </button>
+    </div>
+
+    <div class="sb__resizer" id="sb-resizer" role="separator" aria-orientation="vertical" data-i18n-aria="sb.resize"></div>
+  </aside>
+  <div class="sb-scrim" id="sb-scrim"></div>
+
+  <!-- ══ Conversation ══ -->
+  <div class="main">
+    <header class="topbar" id="topbar">
+      <button class="icon-btn" id="btn-menu" type="button" data-i18n-aria="a11y.menu"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar__title" id="chat-title">New chat</div>
+      <button class="install-btn hidden" id="btn-install" type="button">
+        <i class="fa-solid fa-download"></i> <span data-i18n="pwa.install">Install app</span>
+      </button>
+      <button class="icon-btn" id="btn-new-top" type="button" data-i18n-title="sb.newChat" data-i18n-aria="sb.newChat">
+        <i class="fa-solid fa-pen-to-square"></i>
+      </button>
+      <button class="icon-btn" id="btn-settings" type="button" data-i18n-title="sb.settings" data-i18n-aria="sb.settings">
+        <i class="fa-solid fa-sliders"></i>
+      </button>
+    </header>
+
+    <div class="scroll" id="scroll">
+      <div class="wrap">
+
+        <!-- Welcome screen -->
+        <section class="welcome" id="welcome">
+          <div class="welcome__logo"><span class="brainmark"></span></div>
+          <h2 data-i18n="welcome.title">Your AI, on your machine</h2>
+          <p data-i18n="welcome.lead">This chat runs on Chrome's built-in model. Prompts never leave the device and the history lives in this browser only.</p>
+          <p class="purpose">
+            <i class="fa-solid fa-flask"></i>
+            <span data-i18n-html="welcome.purpose">A demo built to exercise the <b>Prompt API</b>, nothing more.</span>
+          </p>
+
+          <!-- Model setup card -->
+          <div class="setup" id="setup">
+            <div class="setup__head">
+              <div class="setup__ic" id="setup-ic"><i class="fa-solid fa-spinner fa-spin"></i></div>
+              <div class="setup__txt">
+                <strong id="setup-title">…</strong>
+                <span id="setup-desc"></span>
+              </div>
+            </div>
+
+            <div class="dl hidden" id="dl">
+              <div class="dl-bar"><div class="dl-fill" id="dl-fill"></div></div>
+              <div class="dl-meta">
+                <span id="dl-label"></span>
+                <span class="mono" id="dl-pct">0%</span>
+              </div>
+            </div>
+
+            <div class="setup__row">
+              <button class="nv-btn nv-btn--filled" id="btn-download" type="button">
+                <i class="fa-solid fa-cloud-arrow-down"></i> <span data-i18n="setup.download">Download model</span>
+              </button>
+              <button class="nv-btn nv-btn--outline" id="btn-tune" type="button">
+                <i class="fa-solid fa-sliders"></i> <span data-i18n="setup.tune">Adjust settings</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Suggestions (only once the model is ready) -->
+          <div class="suggs hidden" id="suggs">
+            <button class="sugg" type="button" data-sugg="sugg.1">
+              <i class="fa-solid fa-wand-magic-sparkles"></i><b data-i18n="sugg.1.title">What is local AI?</b>
+              <span data-i18n="sugg.1.sub">A short explanation of on-device models</span>
+            </button>
+            <button class="sugg" type="button" data-sugg="sugg.2">
+              <i class="fa-solid fa-feather"></i><b data-i18n="sugg.2.title">Write a haiku</b>
+              <span data-i18n="sugg.2.sub">Rain falling over the city</span>
+            </button>
+            <button class="sugg" type="button" data-sugg="sugg.3">
+              <i class="fa-solid fa-list-check"></i><b data-i18n="sugg.3.title">Uses for the API</b>
+              <span data-i18n="sugg.3.sub">Five ideas for a web app</span>
+            </button>
+            <button class="sugg" type="button" data-sugg="sugg.4">
+              <i class="fa-solid fa-pen-nib"></i><b data-i18n="sugg.4.title">Rewrite a sentence</b>
+              <span data-i18n="sugg.4.sub">Make the wording clearer</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Messages -->
+        <div class="msgs hidden" id="msgs"></div>
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <form class="composer" id="composer">
+        <textarea id="in-msg" rows="1" disabled></textarea>
+        <button class="send-btn" id="btn-send" type="submit" disabled data-i18n-title="composer.send" data-i18n-aria="composer.send">
+          <i class="fa-solid fa-arrow-up"></i>
+        </button>
+      </form>
+      <p class="composer-hint" data-i18n="composer.hint">A Prompt API testbed that runs entirely in your browser. Nothing is sent to a server.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Incompatibility modal ══ -->
+<div class="nv-modal blocker hidden" id="modal-incompat">
+  <div class="nv-modal__panel">
+    <div class="nv-modal__body" style="padding:0">
+      <div class="incompat">
+        <div class="incompat__ic"><i class="fa-solid fa-plug-circle-xmark"></i></div>
+        <h2 id="ic-title">…</h2>
+        <p id="ic-lead"></p>
+
+        <div class="reqs" id="ic-reqs"></div>
+
+        <div class="incompat__foot">
+          <button class="nv-btn nv-btn--filled" id="ic-retry" type="button">
+            <i class="fa-solid fa-rotate"></i> <span data-i18n="incompat.retry">Check again</span>
+          </button>
+          <button class="nv-btn nv-btn--outline" id="ic-dismiss" type="button">
+            <i class="fa-solid fa-eye"></i> <span data-i18n="incompat.dismiss">Look around anyway</span>
+          </button>
+        </div>
+        <p class="incompat__note" data-i18n-html="incompat.note"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Settings modal ══ -->
+<div class="nv-modal hidden" id="modal">
+  <div class="nv-modal__panel nv-modal__panel--lg">
+    <div class="nv-modal__head">
+      <div class="nv-modal__title"><i class="fa-solid fa-sliders"></i> <span data-i18n="sb.settings">Settings</span></div>
+      <div class="nv-modal__actions">
+        <button class="ibtn" id="btn-modal-close" type="button" data-i18n-aria="a11y.close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+
+    <div class="nv-modal__body">
+
+      <!-- Model -->
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.model">Model</div>
+        <div class="setup__head">
+          <div class="setup__ic" id="m-ic"><i class="fa-solid fa-spinner fa-spin"></i></div>
+          <div class="setup__txt">
+            <strong id="m-title">…</strong>
+            <span id="m-desc"></span>
+          </div>
+        </div>
+        <dl class="kv">
+          <div><dt data-i18n="kv.avail">Availability</dt><dd id="kv-avail">-</dd></div>
+          <div><dt data-i18n="kv.session">Session</dt><dd id="kv-session">-</dd></div>
+          <div><dt data-i18n="kv.quota">Context used</dt><dd id="kv-quota" class="mono">-</dd></div>
+          <div><dt data-i18n="kv.maxtemp">Max temperature</dt><dd id="kv-maxtemp" class="mono">-</dd></div>
+          <div><dt data-i18n="kv.maxtopk">Max top-K</dt><dd id="kv-maxtopk" class="mono">-</dd></div>
+          <div><dt data-i18n="kv.runs">Runs</dt><dd data-i18n="kv.runsVal">on-device</dd></div>
+        </dl>
+        <div class="set-row">
+          <button class="nv-btn nv-btn--tonal" id="btn-refresh" type="button"><i class="fa-solid fa-rotate"></i> <span data-i18n="set.recheck">Re-check</span></button>
+          <button class="nv-btn nv-btn--outline" id="btn-destroy" type="button"><i class="fa-solid fa-power-off"></i> <span data-i18n="set.destroy">Destroy session</span></button>
+        </div>
+      </div>
+
+      <div class="set-div"></div>
+
+      <!-- Generation -->
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.generation">Generation</div>
+        <div class="ctl">
+          <div class="ctl-head"><b data-i18n="set.temp">Temperature</b><span class="mono" id="lbl-temp">1.0</span></div>
+          <input type="range" id="in-temp" min="0" max="2" step="0.1" value="1">
+          <span class="m3-body-small" data-i18n="set.tempHint">Higher means more creative, more varied answers.</span>
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><b data-i18n="set.topk">Top-K</b><span class="mono" id="lbl-topk">3</span></div>
+          <input type="range" id="in-topk" min="1" max="8" step="1" value="3">
+          <span class="m3-body-small" data-i18n="set.topkHint">How many candidate tokens the model weighs at each step.</span>
+        </div>
+        <div class="nv-field">
+          <label class="nv-field__label" for="in-system" data-i18n="set.system">System prompt</label>
+          <textarea class="nv-input" id="in-system" rows="3"></textarea>
+        </div>
+        <p class="m3-body-small" style="margin:0" data-i18n="set.applyNote">Changes apply to the next message; the current conversation is replayed into the new session.</p>
+      </div>
+
+      <div class="set-div"></div>
+
+      <!-- Language -->
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.language">Language</div>
+        <div class="seg" id="seg-lang">
+          <button type="button" data-lang=""><i class="fa-solid fa-globe"></i> <span data-i18n="set.auto">Auto</span></button>
+          <button type="button" data-lang="en">English</button>
+          <button type="button" data-lang="pt">Português</button>
+        </div>
+        <p class="m3-body-small" style="margin:0" data-i18n="set.langHint">Also switches the default system prompt and the suggestion cards.</p>
+      </div>
+
+      <div class="set-div"></div>
+
+      <!-- Appearance -->
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.appearance">Appearance</div>
+        <div class="seg" id="seg-theme">
+          <button type="button" data-theme=""><i class="fa-solid fa-circle-half-stroke"></i> <span data-i18n="set.system">System</span></button>
+          <button type="button" data-theme="light"><i class="fa-solid fa-sun"></i> <span data-i18n="set.light">Light</span></button>
+          <button type="button" data-theme="dark"><i class="fa-solid fa-moon"></i> <span data-i18n="set.dark">Dark</span></button>
+        </div>
+      </div>
+
+      <div class="set-div"></div>
+
+      <!-- Data -->
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.data">Data</div>
+        <p class="m3-body-small" style="margin:0" data-i18n-html="set.dataNote"></p>
+        <div class="set-row">
+          <button class="nv-btn nv-btn--outline" id="btn-export" type="button"><i class="fa-solid fa-download"></i> <span data-i18n="set.export">Export chats</span></button>
+          <button class="nv-btn nv-btn--outline" id="btn-wipe" type="button" style="color:var(--md-sys-color-error);border-color:var(--rmf-danger-border)">
+            <i class="fa-solid fa-trash"></i> <span data-i18n="set.wipe">Delete all</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="set-div"></div>
+
+      <!-- API events -->
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.events">API events</div>
+        <div class="evlog mono" id="evlog"></div>
+      </div>
+
+      <div class="set-div"></div>
+
+      <!-- About -->
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.about">About</div>
+        <button class="abt-tile" id="btn-about-from-settings" type="button">
+          <i class="fa-solid fa-circle-info"></i>
+          <span class="abt-tile__t" data-i18n="about.open">About this project</span>
+          <i class="fa-solid fa-chevron-right abt-tile__chev"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ About modal ══ -->
+<div class="nv-modal hidden" id="modal-about">
+  <div class="nv-modal__panel nv-modal__panel--lg">
+    <div class="nv-modal__head">
+      <div class="nv-modal__title"><i class="fa-solid fa-circle-info"></i> <span data-i18n="set.about">About</span></div>
+      <button class="ibtn ibtn--sm ibtn--filled" id="btn-about-close" type="button" data-i18n-aria="a11y.close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="nv-modal__body abt-body">
+
+      <!-- 1. Identity -->
+      <div class="abt-head">
+        <span class="abt-icon" role="img" data-i18n-aria="about.logoAlt">
+          <img src="/res/icon-512.png" width="92" height="92" data-i18n-alt="about.logoAlt">
+        </span>
+        <div class="abt-name">U Local AI</div>
+        <div class="abt-ver" data-i18n="about.tagline">Prompt API testbed</div>
+      </div>
+
+      <!-- 2. Slogan + credit -->
+      <div class="abt-slogan" data-i18n="welcome.title">Your AI, on your machine</div>
+      <a class="abt-credit" href="https://vctgomes.com" target="_blank" rel="noopener noreferrer">
+        <i class="fa-solid fa-globe"></i><span class="abt-credit__link">vctgomes.com</span><span class="abt-credit__year">© 2026</span>
+      </a>
+
+      <!-- 3. What this is -->
+      <div class="abt-label" style="margin-top:30px" data-i18n="about.whatLabel">What this is</div>
+      <div class="abt-card">
+        <span data-i18n-html="about.whatIntro"></span>
+        <div style="height:10px"></div>
+        <div class="abt-src"><i class="fa-solid fa-circle-check"></i><span data-i18n-html="about.what1"></span></div>
+        <div class="abt-src"><i class="fa-solid fa-circle-check"></i><span data-i18n-html="about.what2"></span></div>
+        <div class="abt-src"><i class="fa-solid fa-circle-check"></i><span data-i18n-html="about.what3"></span></div>
+        <div class="abt-src" style="margin-bottom:0"><i class="fa-solid fa-circle-check"></i><span data-i18n-html="about.what4"></span></div>
+        <hr>
+        <div style="margin-top:12px" data-i18n-html="about.warning"></div>
+      </div>
+
+      <!-- 4. Privacy -->
+      <div class="abt-label" style="margin-top:30px" data-i18n="about.privacyLabel">Where your data goes</div>
+      <div class="abt-card" data-i18n-html="about.privacyText"></div>
+
+      <!-- 5. Live state -->
+      <div class="abt-label" style="margin-top:30px" data-i18n="about.stateLabel">Current state</div>
+      <div class="abt-grid">
+        <div class="abt-sync">
+          <span class="abt-sync__l"><i class="fa-solid fa-microchip"></i> <span data-i18n="kv.avail">Availability</span></span>
+          <span class="abt-sync__v" id="about-avail">-</span>
+        </div>
+        <div class="abt-sync">
+          <span class="abt-sync__l"><i class="fa-solid fa-plug"></i> <span data-i18n="kv.session">Session</span></span>
+          <span class="abt-sync__v" id="about-session">-</span>
+        </div>
+        <div class="abt-sync">
+          <span class="abt-sync__l"><i class="fa-solid fa-gauge"></i> <span data-i18n="kv.quota">Context used</span></span>
+          <span class="abt-sync__v" id="about-quota">-</span>
+        </div>
+        <div class="abt-sync">
+          <span class="abt-sync__l"><i class="fa-solid fa-database"></i> <span data-i18n="about.storage">Storage</span></span>
+          <span class="abt-sync__v" id="about-storage">-</span>
+        </div>
+        <div class="abt-sync">
+          <span class="abt-sync__l"><i class="fa-solid fa-mobile-screen"></i> <span data-i18n="about.pwa">Offline / PWA</span></span>
+          <span class="abt-sync__v" id="about-pwa">-</span>
+        </div>
+      </div>
+
+      <!-- 6. More -->
+      <div class="abt-label" style="margin-top:30px" data-i18n="about.moreLabel">More</div>
+      <button class="abt-tile" id="btn-about-settings" type="button">
+        <i class="fa-solid fa-sliders"></i>
+        <span class="abt-tile__t" data-i18n="sb.settings">Settings</span>
+        <i class="fa-solid fa-chevron-right abt-tile__chev"></i>
+      </button>
+      <a class="abt-tile" href="https://github.com/VCTGomes/ulocalai" target="_blank" rel="noopener noreferrer">
+        <i class="fa-brands fa-github"></i>
+        <span class="abt-tile__t" data-i18n="about.source">Source code on GitHub</span>
+        <i class="fa-solid fa-arrow-up-right-from-square abt-tile__chev"></i>
+      </a>
+      <a class="abt-tile" href="https://developer.chrome.com/docs/ai/prompt-api" target="_blank" rel="noopener noreferrer">
+        <i class="fa-solid fa-book"></i>
+        <span class="abt-tile__t" data-i18n="about.docs">Prompt API documentation</span>
+        <i class="fa-solid fa-arrow-up-right-from-square abt-tile__chev"></i>
+      </a>
+      <a class="abt-tile" href="/res/icon.svg" download>
+        <i class="fa-solid fa-shapes"></i>
+        <span class="abt-tile__t" data-i18n="about.mark">Brand mark (SVG)</span>
+        <i class="fa-solid fa-download abt-tile__chev"></i>
+      </a>
+
+      <!-- Footer credit -->
+      <div class="abt-foot" data-i18n-html="about.footer"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Sits bottom-left so it never covers the centred toast. Clicking it is the
+     user gesture Chrome requires to open the permission prompt. -->
+<div class="toast toast--notify" id="toast-notify" role="status">
+  <i class="fa-regular fa-bell"></i>
+  <span data-i18n="notif.ask"></span>
+  <button type="button" id="btn-notify-on" data-i18n="notif.enable"></button>
+  <button type="button" class="toast__x" id="btn-notify-no" data-i18n-aria="notif.dismiss">
+    <i class="fa-solid fa-xmark"></i>
+  </button>
+</div>
+
+<script src="/res/assets/js/i18n.js"></script>
+<script src="/res/assets/js/app.js"></script>
+</body>
+</html>

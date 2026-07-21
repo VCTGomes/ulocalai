@@ -1,0 +1,19 @@
+{
+  "name": "U Local AI · Prompt API",
+  "short_name": "U Local AI",
+  "description": "A testbed for Chrome's Prompt API: a fully on-device chat with model status, download progress and tunable parameters.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#FFFFFF",
+  "theme_color": "#2563EB",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "/res/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/res/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/res/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
