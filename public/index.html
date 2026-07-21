@@ -661,6 +661,9 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
   .incompat__ic{width:64px;height:64px;font-size:1.55rem}
 }
 @media (max-width:900px){ .sb__resizer{display:none} }
+/* Shown only on the mobile layout, where the sidebar is a drawer. */
+.only-mobile{display:none}
+@media (max-width:900px){ .only-mobile{display:grid} }
 @media (min-width:901px){ .sb__close,.sb-scrim{display:none!important} }
 </style>
 </head>
@@ -731,7 +734,10 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
       <button class="install-btn hidden" id="btn-install" type="button">
         <i class="fa-solid fa-download"></i> <span data-i18n="pwa.install">Install app</span>
       </button>
-      <a class="icon-btn" href="/translate/" data-i18n-title="sb.translate" data-i18n-aria="sb.translate">
+      <!-- Mobile only: on desktop the sidebar's Chat/Translator switcher is
+           always visible, so this would just repeat it. On mobile that
+           switcher is behind the drawer, so the shortcut earns its place. -->
+      <a class="icon-btn only-mobile" href="/translate/" data-i18n-title="sb.translate" data-i18n-aria="sb.translate">
         <i class="fa-solid fa-language"></i>
       </a>
       <button class="icon-btn hidden" id="btn-summarize" type="button" data-i18n-title="chat.summarize" data-i18n-aria="chat.summarize">
