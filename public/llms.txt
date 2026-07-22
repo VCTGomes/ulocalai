@@ -20,7 +20,12 @@ log that shows what the API is doing.
 
 ## Pages
 
-- [Home](https://ulocalai.com/): the app itself — the only indexable page.
+- [Home](https://ulocalai.com/): the app itself, a chat over the on-device model.
+- [Translator](https://ulocalai.com/translate/): Chrome's built-in Translator and Language
+  Detector APIs, on-device.
+- [Benchmark](https://ulocalai.com/benchmark/): scores the selected engine over 21 tasks whose
+  answers are verified by code, not by a judge model, and reports load time, time to first
+  token and tokens per second alongside the score.
 - [Source](https://github.com/VCTGomes/ulocalai): the project is MIT-licensed and open source.
 
 ## Optional

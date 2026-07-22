@@ -23,16 +23,19 @@ const LS_SETTINGS = "miniai.settings";
 const LS_RUNS = "miniai.bench";
 
 /* Answers are capped and timed out: one rambling model must not be able to
-   stall a run that has fourteen more tasks behind it. A capped answer is still
-   graded — the checkers only ever look for something near the start. */
+   stall a run that has twenty more tasks behind it. A capped answer is still
+   graded — the checkers only ever look for something near the start. The heavy
+   tasks raise both ceilings, because for them the long answer *is* the test. */
 const MAX_OUT = 400;
 const TASK_TIMEOUT = 45000;
+const HEAVY_OUT = 3000;
+const HEAVY_TIMEOUT = 180000;
 const MAX_RUNS = 12;
 
 /* Kept deliberately terse. Every model gets the same instruction, and short
    answers are what the checkers are written for. */
 const SYSTEM = "You are being benchmarked. Answer in as few words as possible. "
-  + "Give the answer only — no explanation, no preamble, no pleasantries.";
+  + "Give the answer only: no explanation, no preamble, no pleasantries.";
 
 /* ══ Shared settings ═══════════════════════════════════════════
    The same key the chat and the translator write, so the engine picked here is
@@ -103,6 +106,93 @@ function lines(s) {
   return String(s).trim().split(/\r?\n+/)
     .map((l) => norm(l.replace(/^[\s\-*•\d.)]+/, "")))
     .filter(Boolean);
+}
+
+/* ══ Heavy-task machinery ══════════════════════════════════════ */
+
+/** A long, boring, deterministic document with one fact hidden in it.
+
+    Built rather than pasted so it is the same on every run and in every
+    language, and so the needle sits at a fixed depth, two thirds in, which is
+    the position small models are worst at. The filler is repetitive on
+    purpose: the task is retrieval under a long prompt, not reading
+    comprehension, and repetitive filler makes a lucky guess impossible.
+
+    The length is set by the smallest context window in the catalogue rather
+    than by ambition. Forty notes is roughly 1,800 tokens, which leaves room
+    for the system prompt and the answer inside the 4,096 that a 1B WebLLM
+    model declares. Making the log longer would not measure retrieval any
+    better; it would just overflow those models and fail them for a reason
+    that has nothing to do with their ability. */
+const NEEDLE = "QUARTZ-7719";
+const DOC_NOTES = 40;
+const LONG_DOC = (() => {
+  const topics = [
+    "the loading dock inspection", "the quarterly stock count", "the cold storage audit",
+    "the forklift maintenance log", "the night shift handover", "the packaging line review",
+  ];
+  const out = ["WAREHOUSE LOG. Internal notes, do not distribute.", ""];
+  for (let i = 1; i <= DOC_NOTES; i++) {
+    if (i === 27) {
+      out.push(`Note ${i}. Filed by supervisor R. Okafor: the archive password is ${NEEDLE}, to be rotated next quarter.`);
+      continue;
+    }
+    const topic = topics[i % topics.length];
+    out.push(`Note ${i}. Routine entry regarding ${topic}. `
+      + `No exceptions were recorded and the count matched the manifest for aisle ${(i * 7) % 40 + 1}. `
+      + `Signed off at ${(i % 12) + 1}:00 by the duty supervisor.`);
+  }
+  return out.join("\n");
+})();
+
+/** Fences and prose stripped, so what is handed to the sandbox is code. */
+function stripCode(s) {
+  const fenced = String(s).match(/```(?:js|javascript)?\s*([\s\S]*?)```/i);
+  return (fenced ? fenced[1] : String(s)).trim();
+}
+
+/** Runs model-written code against test cases inside a Worker.
+
+    A worker is the sandbox: it has no DOM, no localStorage and no access to
+    this page, it is built from a blob rather than a file, and it is terminated
+    the moment it answers or runs long — so a model that emits an infinite loop
+    costs one task, not the tab. Everything here is local anyway: the code came
+    from a model on this machine and never leaves it.
+
+    Any failure at all — a syntax error, no `solve`, a wrong result, a hang —
+    is a failed task. This is the one checker that can say "the answer actually
+    works" rather than "the answer looks right". */
+function runInSandbox(code, cases, timeout = 5000) {
+  return new Promise((resolve) => {
+    const src = `onmessage = (e) => {
+      try {
+        const solve = new Function(e.data.code + "\\nreturn typeof solve === 'function' ? solve : null;")();
+        if (!solve) return postMessage(false);
+        for (const c of e.data.cases) {
+          if (JSON.stringify(solve(...c.args)) !== JSON.stringify(c.want)) return postMessage(false);
+        }
+        postMessage(true);
+      } catch { postMessage(false); }
+    };`;
+    let url;
+    try { url = URL.createObjectURL(new Blob([src], { type: "text/javascript" })); }
+    catch { return resolve(false); }
+
+    const worker = new Worker(url);
+    let settled = false;
+    const done = (ok) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      worker.terminate();
+      URL.revokeObjectURL(url);
+      resolve(ok);
+    };
+    const timer = setTimeout(() => done(false), timeout);
+    worker.onmessage = (e) => done(e.data === true);
+    worker.onerror = () => done(false);
+    worker.postMessage({ code, cases });
+  });
 }
 
 /* ══ The suite ═════════════════════════════════════════════════
@@ -212,7 +302,92 @@ const TASKS = [
     prompt: "Complete with one word only: Paris is to France as Tokyo is to ___",
     check: (o) => norm(o).includes("japan"),
   },
+
+  /* ══ Heavy tier ══════════════════════════════════════════════
+     The fifteen above are cheap: a few tokens in, a few tokens out. Every
+     model on the shelf gets most of them, which makes them a poor way to tell
+     a 360M model from a 3B one. These six are where the difference shows —
+     they fill the context window, hold a long generation together for
+     hundreds of tokens, and carry a chain of steps to the end. They are also
+     the only part of the run that stresses the machine: this is where a laptop
+     GPU and a desktop GPU stop looking alike. */
+  {
+    id: "needle", cat: "context", heavy: true, expect: NEEDLE,
+    prompt: `${LONG_DOC}\n\nRead the log above. What is the archive password? Reply with just the password.`,
+    check: (o) => o.toUpperCase().includes(NEEDLE),
+  },
+  {
+    id: "count100", cat: "long", heavy: true, strict: true, expect: "1…100",
+    prompt: "Write the whole numbers from 1 to 100 in order, separated by commas, on one line. No other text.",
+    check: (o) => {
+      // Sustained decoding: a model that drifts, repeats or gives up halfway
+      // fails, and that drift is exactly what a long generation is testing.
+      const ns = numbers(o);
+      return ns.length === 100 && ns.every((n, i) => n === i + 1);
+    },
+  },
+  {
+    id: "sort", cat: "long", heavy: true, strict: true, expect: "100, 91, 88 …",
+    prompt: "Sort these numbers in descending order, separated by commas, on one line, with no other text: "
+      + "42, 7, 91, 13, 88, 5, 67, 29, 100, 54",
+    check: (o) => {
+      const want = [100, 91, 88, 67, 54, 42, 29, 13, 7, 5];
+      const ns = numbers(o);
+      return ns.length === want.length && ns.every((n, i) => n === want[i]);
+    },
+  },
+  {
+    id: "code", cat: "code", heavy: true, expect: "working solve()",
+    prompt: "Write a JavaScript function named solve that takes an array of numbers and returns the "
+      + "second largest distinct value, or null if there isn't one. Reply with only the code, no "
+      + "markdown, no explanation, no example calls.",
+    // The only checker here that runs the answer instead of reading it.
+    check: (o) => runInSandbox(stripCode(o), [
+      { args: [[1, 2, 3, 4]], want: 3 },
+      { args: [[5, 5, 5]], want: null },
+      { args: [[10]], want: null },
+      { args: [[-3, -1, -7, -1]], want: -3 },
+      { args: [[9, 9, 8, 7]], want: 8 },
+    ]),
+  },
+  {
+    id: "invoice", cat: "extract", heavy: true, strict: true,
+    expect: '{"order":"AC-4471","total":238.9,"email":"…"}',
+    prompt: "Extract the order number, the total amount as a number, and the customer e-mail from the "
+      + "message below. Reply with only a JSON object with exactly the keys \"order\", \"total\" and \"email\".\n\n"
+      + "\"Hi there, I'm writing about order AC-4471, placed on 12 March. The confirmation said the total "
+      + "was 199.90 euros, but my card was charged 238.90 euros, which is 39 euros more than agreed. "
+      + "I already called the store twice (reference 88213) and nobody could explain it. My account is "
+      + "under r.mendes@correio.example, not the address on the invoice, which is an old one. "
+      + "Could you check what happened and confirm by e-mail? Thanks, Rita.\"",
+    check: (o) => {
+      // Three fields, three ways to get it wrong: the wrong one of two amounts,
+      // the wrong one of two references, the wrong one of two addresses.
+      const j = parseJson(o);
+      if (!j) return false;
+      // Compared raw rather than through norm(): that helper strips dots, which
+      // is right for words and fatal for an address.
+      const flat = (v) => String(v ?? "").trim().toLowerCase().replace(/\s/g, "");
+      return flat(j.order) === "ac-4471"
+        && Math.abs(parseFloat(String(j.total).replace(",", ".")) - 238.9) < 0.001
+        && flat(j.email) === "r.mendes@correio.example";
+    },
+  },
+  {
+    id: "chain", cat: "reason", heavy: true, expect: "714",
+    prompt: "A warehouse holds 1200 boxes. On Monday 35% of them are shipped out. On Tuesday another "
+      + "156 boxes are shipped. On Wednesday 90 boxes arrive. How many boxes are in the warehouse at "
+      + "the end of Wednesday? Reply with just the number.",
+    check: (o) => lastNumber(o) === 714,
+  },
 ];
+
+/** The tasks a run covers. The heavy tier can be left out — it is minutes of
+    work on a slow machine — but a score from one suite must never be compared
+    with a score from the other, so the suite travels with every saved run. */
+function suiteTasks() {
+  return settings.benchHeavy === false ? TASKS.filter((t) => !t.heavy) : TASKS;
+}
 
 /* ══ State ═════════════════════════════════════════════════════ */
 const state = {
@@ -234,7 +409,7 @@ function toast(msg) {
 }
 
 function fmtMs(ms) {
-  if (ms == null) return "—";
+  if (ms == null) return "-";
   return ms >= 1000 ? `${(ms / 1000).toFixed(ms >= 10000 ? 0 : 1)} s` : `${Math.round(ms)} ms`;
 }
 
@@ -324,11 +499,15 @@ async function runTask(task, provider) {
   const ctl = new AbortController();
   const stop = () => ctl.abort();
   state.abort.signal.addEventListener("abort", stop);
-  const timer = setTimeout(() => ctl.abort(), TASK_TIMEOUT);
+  // A heavy task is allowed to take minutes and to write three thousand
+  // characters; holding it to the quick tier's limits would fail it for being
+  // what it was designed to be.
+  const maxOut = task.heavy ? HEAVY_OUT : MAX_OUT;
+  const timer = setTimeout(() => ctl.abort(), task.heavy ? HEAVY_TIMEOUT : TASK_TIMEOUT);
 
   const res = {
     task, pass: false, out: "", ttft: null, genMs: null,
-    tokens: null, capped: false, error: null,
+    tokens: null, context: null, capped: false, error: null,
   };
 
   try {
@@ -345,7 +524,7 @@ async function runTask(task, provider) {
       for await (const chunk of stream) {
         if (first === null) first = performance.now();
         res.out += chunk;
-        if (res.out.length >= MAX_OUT) { res.capped = true; ctl.abort(); break; }
+        if (res.out.length >= maxOut) { res.capped = true; ctl.abort(); break; }
       }
     } catch (err) {
       // A cap or a timeout lands here on some engines. Whatever arrived before
@@ -358,11 +537,16 @@ async function runTask(task, provider) {
       res.genMs = performance.now() - first;
     }
     res.tokens = session.lastCompletionTokens ?? null;
+    // How much of the context window this prompt actually took. Only the long
+    // document task makes this interesting, which is precisely the point.
+    res.context = session.inputUsage || null;
     session.destroy?.();
 
     if (state.abort.signal.aborted) res.error = "stopped";
     else if (!res.out.trim()) res.error = "empty";
-    else { try { res.pass = !!task.check(res.out); } catch { res.pass = false; } }
+    // Awaited: the code task's checker runs the answer in a worker and takes
+    // as long as the answer does.
+    else { try { res.pass = !!(await task.check(res.out)); } catch { res.pass = false; } }
   } catch (err) {
     res.error = err.name === "AbortError" ? "stopped" : err.message;
   } finally {
@@ -392,19 +576,20 @@ async function runSuite() {
   state.needsDownload = (await provider.availability().catch(() => "downloadable")) === "downloadable";
   loadStrip();
 
+  const suite = suiteTasks();
   try {
-    for (let i = 0; i < TASKS.length; i++) {
+    for (let i = 0; i < suite.length; i++) {
       if (state.abort.signal.aborted) break;
       paintProgress(i);
       markRow(i, "running");
-      const res = await runTask(TASKS[i], provider);
+      const res = await runTask(suite[i], provider);
       state.results.push(res);
       paintRow(i, res);
       paintScore();     // the score builds as it goes, rather than at the end
       $("score").classList.remove("hidden");
     }
 
-    const done = state.results.length === TASKS.length && !state.abort.signal.aborted;
+    const done = state.results.length === suite.length && !state.abort.signal.aborted;
     if (done) { saveRun(); toast(t("bm.toast.done")); }
     hideStrip();
     paintProgress(state.results.length);
@@ -437,7 +622,11 @@ function summary() {
   }
   const tps = genMs > 0 ? tokens / (genMs / 1000) : null;
 
-  return { passed, total: done.length, ttft, tps, estimated };
+  // The deepest prompt any task pushed into the context window — the long
+  // document, unless the heavy tier was skipped.
+  const context = done.reduce((m, r) => Math.max(m, r.context || 0), 0) || null;
+
+  return { passed, total: done.length, ttft, tps, estimated, context };
 }
 
 /** 0–100, the share of checkers that returned true. Nothing else feeds it —
@@ -460,14 +649,16 @@ function paintRunning() {
   $("btn-stop").classList.toggle("hidden", !state.running);
   $("engine-pick").classList.toggle("is-locked", state.running);
   $("in-model").disabled = state.running;
+  $("in-heavy").disabled = state.running;
   for (const b of $("seg-engine").children) b.disabled = state.running;
 }
 
 function paintProgress(done) {
-  const pct = Math.round((done / TASKS.length) * 100);
+  const n = suiteTasks().length;
+  const pct = Math.round((done / n) * 100);
   $("run-bar").classList.toggle("hidden", !state.running && done === 0);
   $("run-fill").style.width = pct + "%";
-  $("run-count").textContent = `${done} / ${TASKS.length}`;
+  $("run-count").textContent = `${done} / ${n}`;
 }
 
 /** The rows are laid out once, empty, so the list does not jump around as
@@ -475,7 +666,7 @@ function paintProgress(done) {
 function buildRows() {
   const list = $("tasks");
   list.innerHTML = "";
-  TASKS.forEach((task, i) => {
+  suiteTasks().forEach((task, i) => {
     const row = document.createElement("details");
     row.className = "row is-pending";
     row.id = `row-${i}`;
@@ -486,6 +677,7 @@ function buildRows() {
           <span class="row__prompt"></span>
           <span class="row__meta">
             <span class="chip chip--cat"></span>
+            <span class="chip chip--heavy hidden">${esc(t("bm.heavy"))}</span>
             <span class="chip chip--strict hidden">${esc(t("bm.strict"))}</span>
             <span class="row__expect"></span>
           </span>
@@ -493,11 +685,23 @@ function buildRows() {
         <span class="row__verdict"></span>
         <span class="row__ms"></span>
       </summary>
-      <div class="row__out"><pre class="out"></pre></div>`;
-    row.querySelector(".row__prompt").textContent = task.prompt;
+      <div class="row__out">
+        <details class="full hidden"><summary>${esc(t("bm.fullPrompt"))}</summary><pre class="out out--prompt"></pre></details>
+        <pre class="out"></pre>
+      </div>`;
+    // The long-document prompt is a page and a half of warehouse notes; the
+    // row shows the question, and the full text is one click away in the
+    // details panel, where it belongs.
+    row.querySelector(".row__prompt").textContent = task.prompt.length > 240
+      ? `${task.prompt.slice(0, 90)} … ${task.prompt.slice(-120)}` : task.prompt;
     row.querySelector(".chip--cat").textContent = t(`bm.cat.${task.cat}`);
     row.querySelector(".row__expect").textContent = t("bm.expect").replace("{v}", task.expect);
     if (task.strict) row.querySelector(".chip--strict").classList.remove("hidden");
+    if (task.heavy) row.querySelector(".chip--heavy").classList.remove("hidden");
+    if (task.prompt.length > 240) {
+      row.querySelector(".full").classList.remove("hidden");
+      row.querySelector(".out--prompt").textContent = task.prompt;
+    }
     list.appendChild(row);
   });
   $("tasks-card").classList.remove("hidden");
@@ -528,7 +732,7 @@ function paintRow(i, res) {
   row.querySelector(".row__verdict").textContent = t(`bm.state.${kind}`);
   row.querySelector(".row__ms").textContent = res.ttft !== null
     ? fmtMs((res.ttft || 0) + (res.genMs || 0)) : "";
-  const pre = row.querySelector(".out");
+  const pre = row.querySelector(".row__out > .out");
   pre.textContent = res.error && res.error !== "stopped" && !res.out
     ? t("bm.err.task").replace("{msg}", res.error)
     : (res.out || t("bm.err.empty")) + (res.capped ? ` … ${t("bm.capped")}` : "");
@@ -547,8 +751,12 @@ function paintScore() {
   $("kpi-load").textContent = fmtMs(state.loadMs);
   $("kpi-load-note").textContent = state.needsDownload ? t("bm.kpi.loadDl") : t("bm.kpi.loadCache");
   $("kpi-ttft").textContent = fmtMs(s.ttft);
-  $("kpi-tps").textContent = s.tps ? `${s.tps.toFixed(1)}` : "—";
+  $("kpi-tps").textContent = s.tps ? `${s.tps.toFixed(1)}` : "-";
   $("kpi-tps-note").textContent = s.estimated ? t("bm.kpi.tpsEst") : t("bm.kpi.tpsReal");
+  $("kpi-ctx").textContent = s.context ? s.context.toLocaleString() : "-";
+  $("kpi-ctx-note").textContent = s.context
+    ? (settings.benchHeavy === false ? t("bm.kpi.ctxQuick") : t("bm.kpi.ctxHeavy"))
+    : t("bm.kpi.ctxNone");
   $("params-note").classList.toggle("hidden", state.exactParams);
 }
 
@@ -560,18 +768,27 @@ function readRuns() {
   catch { return []; }
 }
 
+/** A model is filed under its name *and* the suite it ran, because 100% on the
+    quick tier and 100% on the full one are not the same claim. Re-running the
+    same pair replaces the old row; a different suite gets a row of its own. */
+function runKey(label, heavy) { return `${label}·${heavy ? "full" : "quick"}`; }
+
 function saveRun() {
   const s = summary();
-  const runs = readRuns().filter((r) => r.label !== engineLabel());
+  const heavy = settings.benchHeavy !== false;
+  const key = runKey(engineLabel(), heavy);
+  const runs = readRuns().filter((r) => runKey(r.label, r.heavy) !== key);
   runs.unshift({
     label: engineLabel(),
     engine: settings.provider,
+    heavy,
     score: scoreOf(s.passed, s.total),
     passed: s.passed,
     total: s.total,
     ttft: s.ttft,
     tps: s.tps,
     estimated: s.estimated,
+    context: s.context,
     loadMs: state.loadMs,
     at: new Date().toISOString(),
   });
@@ -592,12 +809,15 @@ function paintHistory() {
       <td class="hcell hcell--num"></td>
       <td class="hcell hcell--num"></td>`;
     tr.querySelector("b").textContent = r.label;
-    tr.querySelector("small").textContent = when.toLocaleDateString(lang === "pt" ? "pt-BR" : "en-US");
+    // The suite is part of the identity of a score, so it is on the row rather
+    // than in a footnote nobody reads.
+    tr.querySelector("small").textContent = `${t(r.heavy ? "bm.suite.full" : "bm.suite.quick")} · `
+      + when.toLocaleDateString(lang === "pt" ? "pt-BR" : "en-US");
     const sc = tr.querySelector(".hscore");
     sc.textContent = `${r.score}%`;
     sc.className = `hscore is-${gradeOf(r.score)}`;
     tr.children[2].textContent = fmtMs(r.ttft);
-    tr.children[3].textContent = r.tps ? (r.estimated ? `~${r.tps.toFixed(1)}` : r.tps.toFixed(1)) : "—";
+    tr.children[3].textContent = r.tps ? (r.estimated ? `~${r.tps.toFixed(1)}` : r.tps.toFixed(1)) : "-";
     body.appendChild(tr);
   }
 }
@@ -605,13 +825,14 @@ function paintHistory() {
 /** A markdown table, which is what these numbers usually end up pasted into. */
 function copyResults() {
   const s = summary();
-  const head = `**U Local AI · benchmark** — ${engineLabel()}\n\n`
+  const suite = settings.benchHeavy === false ? "quick" : "full";
+  const head = `**U Local AI · benchmark** · ${engineLabel()} · ${suite} suite\n\n`
     + `Score: **${scoreOf(s.passed, s.total)}%** (${s.passed}/${s.total})  ·  `
-    + `TTFT: ${fmtMs(s.ttft)}  ·  ${s.estimated ? "~" : ""}${s.tps ? s.tps.toFixed(1) : "—"} tok/s  ·  `
-    + `load: ${fmtMs(state.loadMs)}\n\n`
-    + `| Task | Category | Result |\n|---|---|---|\n`;
+    + `TTFT: ${fmtMs(s.ttft)}  ·  ${s.estimated ? "~" : ""}${s.tps ? s.tps.toFixed(1) : "-"} tok/s  ·  `
+    + `load: ${fmtMs(state.loadMs)}${s.context ? `  ·  context peak: ${s.context} tok` : ""}\n\n`
+    + `| Task | Category | Weight | Result |\n|---|---|---|---|\n`;
   const rows = state.results
-    .map((r) => `| ${r.task.id} | ${r.task.cat} | ${r.pass ? "pass" : "fail"} |`)
+    .map((r) => `| ${r.task.id} | ${r.task.cat} | ${r.task.heavy ? "heavy" : "quick"} | ${r.pass ? "pass" : "fail"} |`)
     .join("\n");
   navigator.clipboard.writeText(head + rows).then(() => toast(t("bm.toast.copied")));
 }
@@ -696,6 +917,15 @@ $("in-model").addEventListener("change", () => {
   paintSupport();
 });
 
+$("in-heavy").addEventListener("change", () => {
+  settings.benchHeavy = $("in-heavy").checked;
+  saveSettings();
+  // The task list and the counter both describe a suite that just changed
+  // size, so neither may be left showing the old one.
+  paintProgress(0);
+  if (!state.results.length) buildRows();
+});
+
 $("btn-settings").addEventListener("click", () => {
   paintSegments();
   $("modal").classList.remove("hidden");
@@ -742,7 +972,12 @@ window.addEventListener("beforeunload", (e) => {
   lang = resolveLang();
   applyI18n();
   fillModels();
+  // The heavy tier is on by default: it is the part that actually separates
+  // one model from another, and a benchmark that only asks easy questions
+  // reports 90% for everything and tells you nothing.
+  $("in-heavy").checked = settings.benchHeavy !== false;
   paintEngine();
+  buildRows();       // the suite is visible before it is run
   paintHistory();
   paintProgress(0);
   paintSupport();

@@ -19,6 +19,26 @@ product — no backend, no accounts, no analytics. Just a toy to exercise the AP
 As a bonus it's a PWA with a service worker (works offline), has light/dark themes, pt/en
 i18n, and an event log so you can watch what the API is actually doing.
 
+## Benchmark
+
+`/benchmark` scores whichever engine is selected. There is no backend and no judge model, so
+it only asks questions a few lines of JavaScript can verify: a number that must match, a JSON
+object with the right keys, an exact word. The score is the share of checkers that returned
+true, and speed is reported beside it, never folded into it.
+
+Twenty-one tasks in two tiers. The fifteen quick ones are a few tokens in and a few out. The
+six heavy ones are what actually separate models:
+
+- a password buried in a ~1,800-token log (sized to fit a 1B model's 4k window)
+- the numbers 1 to 100 in order, which catches a model that drifts or repeats
+- a JSON object pulled out of a messy complaint that contains two amounts and two references
+- a function that is **executed against test cases** in a sandboxed worker: code that throws,
+  hangs or returns the wrong value fails
+
+Each task runs in a fresh session at temperature 0, so no task sees another's answer and a
+re-run gives the same score. Results are kept per model in localStorage, filed under the suite
+they ran, so a quick score is never compared against a full one.
+
 ## Running
 
 ```bash
@@ -42,7 +62,9 @@ Without it the app shows a screen explaining what's missing — it checks
 ```
 server.js               static server (no deps)
 public/index.html       the whole app (single page)
-public/res/assets/js/   app.js, i18n.js
+public/translate/       the translator page
+public/benchmark/       the benchmark page
+public/res/assets/js/   app.js, providers.js, i18n.js, translate.js, benchmark.js
 public/sw.js            service worker (network-first)
 ```
 

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>U Local AI · Benchmark</title>
-<meta name="description" content="Score an on-device model in your own browser: fifteen auto-graded tasks plus load time, time to first token and tokens per second. Nothing is uploaded.">
+<meta name="description" content="Score an on-device model in your own browser: twenty-one auto-graded tasks, including long context, sustained generation and code that gets executed against tests. Nothing is uploaded.">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0D0E13" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
@@ -16,11 +16,11 @@
 <meta property="og:site_name" content="U Local AI">
 <meta property="og:url" content="https://ulocalai.com/benchmark/">
 <meta property="og:title" content="U Local AI · Benchmark">
-<meta property="og:description" content="Score an on-device model in your own browser. Fifteen auto-graded tasks, plus speed.">
+<meta property="og:description" content="Score an on-device model in your own browser. Twenty-one auto-graded tasks, plus speed.">
 <meta property="og:image" content="https://ulocalai.com/res/icon-512.png">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="U Local AI · Benchmark">
-<meta name="twitter:description" content="Score an on-device model in your own browser. Fifteen auto-graded tasks, plus speed.">
+<meta name="twitter:description" content="Score an on-device model in your own browser. Twenty-one auto-graded tasks, plus speed.">
 <meta name="twitter:image" content="https://ulocalai.com/res/icon-512.png">
 
 <link rel="manifest" href="/manifest.json">
@@ -127,6 +127,16 @@ select.nv-input{
 }
 .btn--ghost:hover:not(:disabled){background:var(--md-sys-color-surface-container-high)}
 
+.switch{
+  display:flex;align-items:flex-start;gap:11px;margin-top:16px;padding:12px 13px;cursor:pointer;
+  border-radius:var(--rmf-radius-md);background:var(--md-sys-color-surface-container);
+}
+.switch input{margin:1px 0 0;width:17px;height:17px;flex:0 0 auto;accent-color:var(--md-sys-color-primary);cursor:pointer}
+.switch input:disabled{cursor:not-allowed;opacity:.5}
+.switch__txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.switch__txt b{font-size:.82rem;font-weight:600}
+.switch__txt small{font-size:.72rem;line-height:1.5;color:var(--md-sys-color-on-surface-variant)}
+
 .engine-note{margin:12px 0 0;font-size:.74rem;color:var(--md-sys-color-on-surface-variant)}
 .run-bar{display:flex;align-items:center;gap:10px;margin-top:14px}
 .run-bar__track{flex:1;height:6px;border-radius:var(--rmf-radius-full);overflow:hidden;background:var(--md-sys-color-surface-container-highest)}
@@ -152,8 +162,9 @@ select.nv-input{
 .grade.is-c{background:var(--rmf-warning-fill);color:var(--rmf-warning)}
 .grade.is-d,.grade.is-e{background:var(--rmf-danger-fill);color:var(--rmf-danger)}
 
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}
-@media (max-width:620px){ .kpis{grid-template-columns:1fr} }
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px}
+@media (max-width:820px){ .kpis{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:480px){ .kpis{grid-template-columns:1fr} }
 .kpi{
   padding:13px 14px;border-radius:var(--rmf-radius-md);
   background:var(--md-sys-color-surface-container);
@@ -196,6 +207,7 @@ select.nv-input{
   background:var(--md-sys-color-surface-container-highest);color:var(--md-sys-color-on-surface-variant);
 }
 .chip--strict{background:var(--rmf-info-fill);color:var(--rmf-info)}
+.chip--heavy{background:var(--rmf-warning-fill);color:var(--rmf-warning)}
 .row__expect{font-size:.68rem;color:var(--md-sys-color-on-surface-variant);overflow-wrap:anywhere}
 .row__verdict{
   flex:0 0 auto;font-size:.72rem;font-weight:600;color:var(--md-sys-color-on-surface-variant);
@@ -208,6 +220,14 @@ select.nv-input{
 }
 @media (max-width:560px){ .row__ms{display:none} }
 .row__out{padding:0 13px 13px 41px}
+/* The long-document prompt is a page of text: available, folded away. */
+.full{margin-bottom:8px}
+.full summary{
+  cursor:pointer;font-size:.72rem;font-weight:600;padding:4px 0;
+  color:var(--md-sys-color-on-surface-variant);
+}
+.full summary:hover{color:var(--md-sys-color-primary)}
+.out--prompt{max-height:200px;margin-top:6px}
 .out{
   margin:0;padding:10px 12px;border-radius:var(--rmf-radius-sm);
   background:var(--md-sys-color-surface-container-lowest);
@@ -343,6 +363,17 @@ th:not(:first-child):not(:nth-child(2)){text-align:right}
       </button>
     </div>
 
+    <!-- The heavy tier is what makes the run take minutes, so it is a choice
+         rather than a surprise. On by default: without it every model scores
+         much the same. -->
+    <label class="switch">
+      <input type="checkbox" id="in-heavy" checked>
+      <span class="switch__txt">
+        <b data-i18n="bm.heavy.label">Include heavy tasks</b>
+        <small data-i18n="bm.heavy.hint"></small>
+      </span>
+    </label>
+
     <p class="engine-note" id="engine-note"></p>
 
     <div class="run-bar hidden" id="run-bar">
@@ -383,18 +414,23 @@ th:not(:first-child):not(:nth-child(2)){text-align:right}
     <div class="kpis">
       <div class="kpi">
         <div class="kpi__label" data-i18n="bm.kpi.load">Model load</div>
-        <div class="kpi__value" id="kpi-load">—</div>
+        <div class="kpi__value" id="kpi-load">-</div>
         <div class="kpi__note" id="kpi-load-note"></div>
       </div>
       <div class="kpi">
         <div class="kpi__label" data-i18n="bm.kpi.ttft">First token</div>
-        <div class="kpi__value" id="kpi-ttft">—</div>
+        <div class="kpi__value" id="kpi-ttft">-</div>
         <div class="kpi__note" data-i18n="bm.kpi.ttftNote"></div>
       </div>
       <div class="kpi">
         <div class="kpi__label" data-i18n="bm.kpi.tps">Speed</div>
-        <div class="kpi__value"><span id="kpi-tps">—</span><small>tok/s</small></div>
+        <div class="kpi__value"><span id="kpi-tps">-</span><small>tok/s</small></div>
         <div class="kpi__note" id="kpi-tps-note"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi__label" data-i18n="bm.kpi.ctx">Context peak</div>
+        <div class="kpi__value"><span id="kpi-ctx">-</span><small>tok</small></div>
+        <div class="kpi__note" id="kpi-ctx-note"></div>
       </div>
     </div>
 
