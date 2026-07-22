@@ -1,5 +1,5 @@
 {
-  "name": "U Local AI · Prompt API",
+  "name": "U Local AI",
   "short_name": "U Local AI",
   "description": "A testbed for Chrome's Prompt API: a fully on-device chat with model status, download progress and tunable parameters.",
   "id": "/",

@@ -105,12 +105,16 @@ body.is-resizing{cursor:col-resize;user-select:none}
 /* Section switcher under the brand */
 .sb__nav{display:flex;gap:3px;padding:2px;border-radius:var(--rmf-radius-full);background:var(--md-sys-color-surface-container-high)}
 .sb__nav-item{
-  flex:1;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:7px;
-  height:32px;border-radius:var(--rmf-radius-full);cursor:pointer;text-decoration:none;
-  font-size:.78rem;font-weight:600;color:var(--md-sys-color-on-surface-variant);
+  flex:1;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:32px;padding:0 6px;border-radius:var(--rmf-radius-full);cursor:pointer;text-decoration:none;
+  font-size:.75rem;font-weight:600;color:var(--md-sys-color-on-surface-variant);
+  overflow:hidden;white-space:nowrap;
   transition:background .12s,color .12s;
 }
-.sb__nav-item i{font-size:.76rem}
+/* Three destinations in a sidebar the user can narrow: the icon always stays,
+   the word gives way before the row can overflow. */
+.sb__nav-item span{overflow:hidden;text-overflow:ellipsis}
+.sb__nav-item i{font-size:.76rem;flex:0 0 auto}
 .sb__nav-item:hover:not(.is-active){color:var(--md-sys-color-on-surface)}
 .sb__nav-item.is-active{background:var(--md-sys-color-surface);color:var(--md-sys-color-primary);cursor:default}
 
@@ -681,11 +685,12 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
       </button>
     </div>
 
-    <!-- The two things this app is, side by side. Chat is where you already
+    <!-- The three things this app is, side by side. Chat is where you already
          are, so it reads as the active one. -->
     <nav class="sb__nav">
       <span class="sb__nav-item is-active"><i class="fa-solid fa-comments"></i> <span data-i18n="sb.chat">Chat</span></span>
       <a class="sb__nav-item" href="/translate/"><i class="fa-solid fa-language"></i> <span data-i18n="sb.translate">Translator</span></a>
+      <a class="sb__nav-item" href="/benchmark/"><i class="fa-solid fa-gauge-high"></i> <span data-i18n="sb.benchmark">Benchmark</span></a>
     </nav>
 
     <button class="new-chat" id="btn-new" type="button"><i class="fa-solid fa-plus"></i> <span data-i18n="sb.newChat">New chat</span></button>
@@ -734,11 +739,14 @@ html.is-wco .topbar__title{-webkit-app-region:drag;app-region:drag}
       <button class="install-btn hidden" id="btn-install" type="button">
         <i class="fa-solid fa-download"></i> <span data-i18n="pwa.install">Install app</span>
       </button>
-      <!-- Mobile only: on desktop the sidebar's Chat/Translator switcher is
-           always visible, so this would just repeat it. On mobile that
-           switcher is behind the drawer, so the shortcut earns its place. -->
+      <!-- Mobile only: on desktop the sidebar's page switcher is always
+           visible, so this would just repeat it. On mobile that switcher is
+           behind the drawer, so the shortcuts earn their place. -->
       <a class="icon-btn only-mobile" href="/translate/" data-i18n-title="sb.translate" data-i18n-aria="sb.translate">
         <i class="fa-solid fa-language"></i>
+      </a>
+      <a class="icon-btn only-mobile" href="/benchmark/" data-i18n-title="sb.benchmark" data-i18n-aria="sb.benchmark">
+        <i class="fa-solid fa-gauge-high"></i>
       </a>
       <button class="icon-btn hidden" id="btn-summarize" type="button" data-i18n-title="chat.summarize" data-i18n-aria="chat.summarize">
         <i class="fa-solid fa-wand-magic-sparkles"></i>

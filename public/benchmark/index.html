@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>U Local AI · Benchmark</title>
+<meta name="description" content="Score an on-device model in your own browser: fifteen auto-graded tasks plus load time, time to first token and tokens per second. Nothing is uploaded.">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D0E13" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="U Local AI">
+<link rel="canonical" href="https://ulocalai.com/benchmark/">
+<meta name="robots" content="index, follow">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="U Local AI">
+<meta property="og:url" content="https://ulocalai.com/benchmark/">
+<meta property="og:title" content="U Local AI · Benchmark">
+<meta property="og:description" content="Score an on-device model in your own browser. Fifteen auto-graded tasks, plus speed.">
+<meta property="og:image" content="https://ulocalai.com/res/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="U Local AI · Benchmark">
+<meta name="twitter:description" content="Score an on-device model in your own browser. Fifteen auto-graded tasks, plus speed.">
+<meta name="twitter:image" content="https://ulocalai.com/res/icon-512.png">
+
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="512x512" href="/res/icon-512.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/res/icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/res/favicon-32.png">
+<link rel="apple-touch-icon" href="/res/apple-touch-icon.png">
+
+<link rel="stylesheet" href="/res/fonts/fonts.css">
+<link rel="stylesheet" href="/res/fonts/fa/css/all.min.css">
+<link rel="stylesheet" href="/res/assets/css/rmf.css">
+<style>
+/* ══ U Local AI · Benchmark — same tokens as the chat and the translator ══ */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%}
+body{
+  font-family:var(--md-ref-typeface-plain);
+  background:var(--md-sys-color-background);color:var(--md-sys-color-on-surface);
+  -webkit-font-smoothing:antialiased;
+}
+.hidden{display:none!important}
+button{font:inherit}
+
+.brainmark{
+  display:inline-block;background:currentColor;
+  -webkit-mask:url(/res/icon.svg) center/contain no-repeat;
+          mask:url(/res/icon.svg) center/contain no-repeat;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────── */
+.topbar{
+  display:flex;align-items:center;gap:10px;
+  padding:calc(12px + env(safe-area-inset-top)) 18px 12px;
+  border-bottom:1px solid var(--md-sys-color-outline-variant);
+}
+.topbar__logo{width:30px;height:30px;flex:0 0 auto;display:grid;place-items:center;color:var(--md-sys-color-primary)}
+.topbar__logo .brainmark{width:23px;height:23px}
+.topbar__brand{font-family:var(--md-ref-typeface-brand);font-size:.95rem;font-weight:700;letter-spacing:-.01em;flex:1;min-width:0}
+.topbar__brand small{display:block;font-size:.66rem;font-weight:500;color:var(--md-sys-color-on-surface-variant);letter-spacing:.02em}
+.topbar__icon{
+  width:38px;height:38px;flex:0 0 auto;border:none;border-radius:50%;background:transparent;
+  color:var(--md-sys-color-on-surface-variant);font-size:.95rem;cursor:pointer;display:grid;place-items:center;
+  transition:background .15s;
+}
+.topbar__icon:hover{background:var(--md-sys-color-surface-container-high)}
+.topbar__link{
+  display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;flex:0 0 auto;cursor:pointer;
+  border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--rmf-radius-full);
+  background:var(--md-sys-color-surface);color:var(--md-sys-color-on-surface);
+  font-size:.8rem;font-weight:600;text-decoration:none;transition:background .15s,border-color .15s;
+}
+.topbar__link:hover{background:var(--md-sys-color-surface-container-high);border-color:var(--md-sys-color-primary)}
+.topbar__link i{font-size:.75rem;color:var(--md-sys-color-primary)}
+@media (max-width:620px){ .topbar__link span{display:none} .topbar__link{padding:0 11px} }
+
+.page{max-width:1000px;margin:0 auto;padding:22px 18px calc(28px + env(safe-area-inset-bottom))}
+.lead{margin:0 0 20px;font-size:.86rem;line-height:1.6;color:var(--md-sys-color-on-surface-variant)}
+.lead b{color:var(--md-sys-color-on-surface);font-weight:600}
+
+.card{
+  border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--rmf-radius-lg);
+  background:var(--md-sys-color-surface-container-low);padding:18px;margin-bottom:16px;
+}
+.card__title{
+  display:flex;align-items:center;gap:9px;margin:0 0 14px;
+  font-size:.64rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--md-sys-color-on-surface-variant);
+}
+.card__title i{color:var(--md-sys-color-primary);font-size:.8rem}
+.card__title .grow{flex:1}
+
+/* ── The run controls ────────────────────────────────────────── */
+.runbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}
+.picker{display:flex;flex-direction:column;gap:8px;flex:1;min-width:min(100%,260px)}
+.picker.is-locked{opacity:.5;pointer-events:none}
+.picker__label{font-size:.7rem;font-weight:600;color:var(--md-sys-color-on-surface-variant)}
+.seg{display:flex;border:1px solid var(--md-sys-color-outline);border-radius:var(--rmf-radius-full);overflow:hidden}
+.seg button{
+  flex:1;height:36px;border:none;background:transparent;cursor:pointer;font-size:.78rem;
+  color:var(--md-sys-color-on-surface-variant);display:inline-flex;align-items:center;justify-content:center;gap:6px;
+}
+.seg button + button{border-left:1px solid var(--md-sys-color-outline)}
+.seg button.is-active{background:var(--rmf-select-fill);color:var(--md-sys-color-primary);font-weight:600}
+.seg button:disabled{cursor:not-allowed}
+select.nv-input{
+  width:100%;height:42px;padding:0 34px 0 12px;font:inherit;font-size:.86rem;cursor:pointer;appearance:none;
+  border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--rmf-radius-sm);
+  background-color:var(--md-sys-color-surface);color:var(--md-sys-color-on-surface);
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;background-size:5px 5px;background-repeat:no-repeat;
+}
+.btn{
+  height:44px;padding:0 22px;border:none;border-radius:var(--rmf-radius-full);cursor:pointer;
+  font-size:.86rem;font-weight:600;display:inline-flex;align-items:center;gap:9px;flex:0 0 auto;
+  background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary);
+  transition:filter .15s;
+}
+.btn:hover:not(:disabled){filter:brightness(1.06)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn--stop{background:var(--rmf-danger);color:#fff}
+.btn--ghost{
+  background:transparent;color:var(--md-sys-color-on-surface-variant);
+  border:1px solid var(--md-sys-color-outline-variant);height:36px;padding:0 14px;font-size:.78rem;
+}
+.btn--ghost:hover:not(:disabled){background:var(--md-sys-color-surface-container-high)}
+
+.engine-note{margin:12px 0 0;font-size:.74rem;color:var(--md-sys-color-on-surface-variant)}
+.run-bar{display:flex;align-items:center;gap:10px;margin-top:14px}
+.run-bar__track{flex:1;height:6px;border-radius:var(--rmf-radius-full);overflow:hidden;background:var(--md-sys-color-surface-container-highest)}
+.run-bar__fill{height:100%;width:0%;border-radius:var(--rmf-radius-full);background:var(--md-sys-color-primary);transition:width .3s ease}
+.run-bar__count{font-size:.72rem;font-variant-numeric:tabular-nums;color:var(--md-sys-color-on-surface-variant)}
+
+/* ── Score: one headline number, not a chart ─────────────────── */
+.hero{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.hero__num{
+  font-family:var(--md-ref-typeface-brand);font-size:4.2rem;font-weight:700;line-height:1;
+  letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:var(--md-sys-color-on-surface);
+}
+.hero__num span{font-size:1.6rem;font-weight:600;color:var(--md-sys-color-on-surface-variant);margin-left:2px}
+.hero__side{display:flex;flex-direction:column;gap:6px;min-width:0}
+.hero__frac{font-size:.84rem;color:var(--md-sys-color-on-surface-variant)}
+.hero__engine{font-size:.78rem;font-weight:600;color:var(--md-sys-color-on-surface)}
+/* Status colours, and never colour alone: the grade word is the label. */
+.grade{
+  align-self:flex-start;padding:3px 11px;border-radius:var(--rmf-radius-full);
+  font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+}
+.grade.is-a,.grade.is-b{background:var(--rmf-success-fill);color:var(--rmf-success)}
+.grade.is-c{background:var(--rmf-warning-fill);color:var(--rmf-warning)}
+.grade.is-d,.grade.is-e{background:var(--rmf-danger-fill);color:var(--rmf-danger)}
+
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}
+@media (max-width:620px){ .kpis{grid-template-columns:1fr} }
+.kpi{
+  padding:13px 14px;border-radius:var(--rmf-radius-md);
+  background:var(--md-sys-color-surface-container);
+}
+.kpi__label{font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--md-sys-color-on-surface-variant)}
+.kpi__value{
+  margin-top:6px;font-family:var(--md-ref-typeface-brand);font-size:1.5rem;font-weight:700;
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--md-sys-color-on-surface);
+}
+.kpi__value small{font-size:.8rem;font-weight:600;color:var(--md-sys-color-on-surface-variant);margin-left:3px}
+.kpi__note{margin-top:3px;font-size:.68rem;line-height:1.45;color:var(--md-sys-color-on-surface-variant)}
+.warn-note{
+  margin:16px 0 0;padding:10px 13px;border-radius:var(--rmf-radius-md);
+  background:var(--rmf-warning-fill);color:var(--md-sys-color-on-surface-variant);
+  font-size:.74rem;line-height:1.5;
+}
+
+/* ── One row per task ────────────────────────────────────────── */
+.rows{display:flex;flex-direction:column;gap:6px}
+.row{border-radius:var(--rmf-radius-md);background:var(--md-sys-color-surface-container);overflow:hidden}
+.row__head{
+  display:flex;align-items:center;gap:11px;padding:11px 13px;cursor:pointer;list-style:none;
+}
+.row__head::-webkit-details-marker{display:none}
+.row.is-pending{opacity:.5}
+.row.is-pending .row__head,.row.is-running .row__head{cursor:default}
+.row__st{width:17px;flex:0 0 auto;text-align:center;font-size:.9rem;color:var(--md-sys-color-on-surface-variant)}
+.row.is-pass .row__st{color:var(--rmf-success)}
+.row.is-fail .row__st{color:var(--rmf-danger)}
+.row.is-running .row__st{color:var(--md-sys-color-primary)}
+.row__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.row__prompt{
+  font-size:.82rem;line-height:1.4;color:var(--md-sys-color-on-surface);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.row__meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.chip{
+  font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:2px 7px;border-radius:var(--rmf-radius-full);
+  background:var(--md-sys-color-surface-container-highest);color:var(--md-sys-color-on-surface-variant);
+}
+.chip--strict{background:var(--rmf-info-fill);color:var(--rmf-info)}
+.row__expect{font-size:.68rem;color:var(--md-sys-color-on-surface-variant);overflow-wrap:anywhere}
+.row__verdict{
+  flex:0 0 auto;font-size:.72rem;font-weight:600;color:var(--md-sys-color-on-surface-variant);
+}
+.row.is-pass .row__verdict{color:var(--rmf-success)}
+.row.is-fail .row__verdict{color:var(--rmf-danger)}
+.row__ms{
+  flex:0 0 auto;min-width:52px;text-align:right;font-size:.7rem;font-variant-numeric:tabular-nums;
+  color:var(--md-sys-color-on-surface-variant);
+}
+@media (max-width:560px){ .row__ms{display:none} }
+.row__out{padding:0 13px 13px 41px}
+.out{
+  margin:0;padding:10px 12px;border-radius:var(--rmf-radius-sm);
+  background:var(--md-sys-color-surface-container-lowest);
+  border:1px solid var(--md-sys-color-outline-variant);
+  font-family:ui-monospace,SFMono-Regular,'Roboto Mono',Menlo,monospace;
+  font-size:.74rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;
+  color:var(--md-sys-color-on-surface-variant);max-height:240px;overflow:auto;
+}
+
+/* ── Past runs ───────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:420px}
+th{
+  text-align:left;padding:0 10px 8px;font-size:.64rem;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--md-sys-color-on-surface-variant);white-space:nowrap;
+}
+th:not(:first-child):not(:nth-child(2)){text-align:right}
+.hcell{padding:9px 10px;border-top:1px solid var(--md-sys-color-outline-variant);font-size:.82rem}
+.hcell--model b{display:block;font-weight:600}
+.hcell--model small{font-size:.68rem;color:var(--md-sys-color-on-surface-variant)}
+.hcell--num{text-align:right;font-variant-numeric:tabular-nums;color:var(--md-sys-color-on-surface-variant)}
+.hscore{
+  display:inline-block;padding:2px 9px;border-radius:var(--rmf-radius-full);
+  font-size:.76rem;font-weight:700;font-variant-numeric:tabular-nums;
+}
+.hscore.is-a,.hscore.is-b{background:var(--rmf-success-fill);color:var(--rmf-success)}
+.hscore.is-c{background:var(--rmf-warning-fill);color:var(--rmf-warning)}
+.hscore.is-d,.hscore.is-e{background:var(--rmf-danger-fill);color:var(--rmf-danger)}
+
+/* ── Status strip and the unsupported card ───────────────────── */
+.strip{
+  display:flex;align-items:center;gap:12px;margin-top:14px;padding:13px 15px;
+  border-radius:var(--rmf-radius-md);font-size:.8rem;line-height:1.5;
+  background:var(--rmf-info-fill);color:var(--md-sys-color-on-surface-variant);
+}
+.strip i{color:var(--rmf-info);flex:0 0 auto}
+.strip.is-err{background:var(--rmf-danger-fill)}
+.strip.is-err i{color:var(--rmf-danger)}
+.strip__txt{flex:1;min-width:0}
+.strip__txt b{color:var(--md-sys-color-on-surface);font-weight:600;display:block}
+.dl-bar{height:6px;border-radius:var(--rmf-radius-full);overflow:hidden;background:var(--md-sys-color-surface-container-highest);margin-top:7px}
+.dl-fill{height:100%;width:0%;border-radius:var(--rmf-radius-full);background:var(--md-sys-color-primary);transition:width .3s ease}
+
+.blocked{
+  margin-bottom:16px;padding:26px 22px;text-align:center;
+  border-radius:var(--rmf-radius-lg);border:1px solid var(--md-sys-color-outline-variant);
+  background:var(--md-sys-color-surface-container-low);
+}
+.blocked__ic{
+  width:66px;height:66px;margin:0 auto 18px;border-radius:21px;display:grid;place-items:center;font-size:1.6rem;
+  background:var(--rmf-danger-fill);color:var(--rmf-danger);
+}
+.blocked h2{font-family:var(--md-ref-typeface-brand);font-size:1.2rem;font-weight:600;letter-spacing:-.02em;margin:0}
+.blocked p{margin:10px auto 0;max-width:32rem;font-size:.85rem;line-height:1.6;color:var(--md-sys-color-on-surface-variant)}
+.blocked code,.method code{
+  font-family:ui-monospace,SFMono-Regular,'Roboto Mono',Menlo,monospace;font-size:.92em;
+  padding:.1em .35em;border-radius:5px;background:var(--md-sys-color-surface-container-high);
+}
+.method{margin:0;font-size:.8rem;line-height:1.65;color:var(--md-sys-color-on-surface-variant)}
+.method b{color:var(--md-sys-color-on-surface);font-weight:600}
+.note{margin:22px 0 0;font-size:.74rem;line-height:1.6;text-align:center;color:var(--md-sys-color-on-surface-variant)}
+.note a{color:var(--md-sys-color-primary);text-decoration:none}
+
+.set-sec{display:flex;flex-direction:column;gap:12px}
+.set-sec__title{
+  font-size:.64rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--md-sys-color-on-surface-variant);
+}
+.set-div{height:1px;background:var(--md-sys-color-outline-variant)}
+.abt-tile{
+  display:flex;align-items:center;gap:12px;padding:13px 14px;cursor:pointer;
+  border-radius:var(--rmf-radius-md);background:var(--md-sys-color-surface-container);
+  color:var(--md-sys-color-on-surface);font-size:.85rem;transition:background .12s;
+  border:none;width:100%;text-align:left;text-decoration:none;
+}
+.abt-tile:hover{background:var(--md-sys-color-surface-container-high)}
+.abt-tile > i:first-child{color:var(--md-sys-color-primary);width:16px;text-align:center;font-size:.86rem}
+.abt-tile__t{flex:1;min-width:0}
+.abt-tile__chev{font-size:.7rem;color:var(--md-sys-color-on-surface-variant)}
+
+.toast{
+  position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,14px);
+  z-index:3000;padding:11px 18px;border-radius:var(--rmf-radius-full);font-size:.82rem;
+  background:var(--md-sys-color-inverse-surface);color:var(--md-sys-color-inverse-on-surface);
+  box-shadow:var(--rmf-elev-2);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+}
+.toast.is-on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__logo"><span class="brainmark"></span></div>
+  <div class="topbar__brand">U Local AI<small data-i18n="bm.brandSub">Benchmark · on-device</small></div>
+  <button class="topbar__icon" id="btn-settings" type="button" data-i18n-title="sb.settings" data-i18n-aria="sb.settings">
+    <i class="fa-solid fa-sliders"></i>
+  </button>
+  <a class="topbar__link" href="/">
+    <i class="fa-solid fa-comments"></i> <span data-i18n="tr.backToChat">Chat</span>
+  </a>
+</header>
+
+<main class="page">
+  <p class="lead" data-i18n-html="bm.lead"></p>
+
+  <!-- Shown when the selected engine cannot run here at all -->
+  <section class="blocked hidden" id="blocked">
+    <div class="blocked__ic"><i class="fa-solid fa-gauge-high"></i></div>
+    <h2 data-i18n="bm.blocked.title">This engine can't run here</h2>
+    <p id="blocked-lead"></p>
+  </section>
+
+  <!-- ══ What to run, and the button that runs it ══ -->
+  <section class="card">
+    <h2 class="card__title"><i class="fa-solid fa-microchip"></i> <span data-i18n="bm.engine.title">Engine under test</span></h2>
+    <div class="runbar">
+      <div class="picker" id="engine-pick">
+        <span class="picker__label" data-i18n="bm.engine.label">Engine</span>
+        <div class="seg" id="seg-engine">
+          <button type="button" data-engine="chrome"><i class="fa-brands fa-chrome"></i> <span data-i18n="engine.chrome">Chrome · Gemini Nano</span></button>
+          <button type="button" data-engine="webllm"><i class="fa-solid fa-microchip"></i> <span data-i18n="engine.webllm">WebLLM · WebGPU</span></button>
+        </div>
+      </div>
+      <div class="picker hidden" id="model-field">
+        <label class="picker__label" for="in-model" data-i18n="bm.engine.model">Open model</label>
+        <select class="nv-input" id="in-model"></select>
+      </div>
+      <button class="btn" id="btn-run" type="button">
+        <i class="fa-solid fa-play"></i> <span data-i18n="bm.run">Run benchmark</span>
+      </button>
+      <button class="btn btn--stop hidden" id="btn-stop" type="button">
+        <i class="fa-solid fa-stop"></i> <span data-i18n="bm.stop">Stop</span>
+      </button>
+    </div>
+
+    <p class="engine-note" id="engine-note"></p>
+
+    <div class="run-bar hidden" id="run-bar">
+      <div class="run-bar__track"><div class="run-bar__fill" id="run-fill"></div></div>
+      <span class="run-bar__count" id="run-count">0 / 15</span>
+    </div>
+
+    <!-- Model downloads and hard failures, same strip as the translator -->
+    <div class="strip hidden" id="strip">
+      <i class="fa-solid fa-cloud-arrow-down" id="strip-ic"></i>
+      <div class="strip__txt">
+        <b id="strip-title"></b>
+        <span id="strip-desc"></span>
+        <div class="dl-bar hidden" id="dl"><div class="dl-fill" id="dl-fill"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ The score, and the three speed numbers beside it ══ -->
+  <section class="card hidden" id="score">
+    <h2 class="card__title">
+      <i class="fa-solid fa-award"></i> <span data-i18n="bm.score.title">Result</span>
+      <span class="grow"></span>
+      <button class="btn btn--ghost" id="btn-copy" type="button">
+        <i class="fa-regular fa-copy"></i> <span data-i18n="bm.copy">Copy</span>
+      </button>
+    </h2>
+
+    <div class="hero">
+      <div class="hero__num"><span id="score-value">0</span><span>%</span></div>
+      <div class="hero__side">
+        <span class="grade" id="score-grade"></span>
+        <span class="hero__frac" id="score-frac"></span>
+        <span class="hero__engine" id="score-engine"></span>
+      </div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi">
+        <div class="kpi__label" data-i18n="bm.kpi.load">Model load</div>
+        <div class="kpi__value" id="kpi-load">—</div>
+        <div class="kpi__note" id="kpi-load-note"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi__label" data-i18n="bm.kpi.ttft">First token</div>
+        <div class="kpi__value" id="kpi-ttft">—</div>
+        <div class="kpi__note" data-i18n="bm.kpi.ttftNote"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi__label" data-i18n="bm.kpi.tps">Speed</div>
+        <div class="kpi__value"><span id="kpi-tps">—</span><small>tok/s</small></div>
+        <div class="kpi__note" id="kpi-tps-note"></div>
+      </div>
+    </div>
+
+    <p class="warn-note hidden" id="params-note" data-i18n="bm.params.note"></p>
+  </section>
+
+  <!-- ══ Every task, its verdict and what the model actually said ══ -->
+  <section class="card hidden" id="tasks-card">
+    <h2 class="card__title"><i class="fa-solid fa-list-check"></i> <span data-i18n="bm.tasks.title">Tasks</span></h2>
+    <div class="rows" id="tasks"></div>
+  </section>
+
+  <!-- ══ Past runs, one per model, so models can be compared ══ -->
+  <section class="card hidden" id="history-card">
+    <h2 class="card__title">
+      <i class="fa-solid fa-ranking-star"></i> <span data-i18n="bm.history.title">Your models, ranked</span>
+      <span class="grow"></span>
+      <button class="btn btn--ghost" id="btn-clear-history" type="button">
+        <i class="fa-regular fa-trash-can"></i> <span data-i18n="bm.history.clear">Clear</span>
+      </button>
+    </h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="bm.history.model">Model</th>
+            <th data-i18n="bm.history.score">Score</th>
+            <th data-i18n="bm.history.ttft">First token</th>
+            <th data-i18n="bm.history.tps">tok/s</th>
+          </tr>
+        </thead>
+        <tbody id="history-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══ How the number is arrived at ══ -->
+  <section class="card">
+    <h2 class="card__title"><i class="fa-solid fa-circle-question"></i> <span data-i18n="bm.method.title">How the score works</span></h2>
+    <p class="method" data-i18n-html="bm.method"></p>
+  </section>
+
+  <p class="note" data-i18n-html="bm.note"></p>
+</main>
+
+<!-- ══ Settings ══
+     Only the two genuinely global choices; the engine is picked on the page
+     itself, since here it is the subject rather than a preference. -->
+<div class="nv-modal hidden" id="modal">
+  <div class="nv-modal__panel">
+    <div class="nv-modal__head">
+      <div class="nv-modal__title"><i class="fa-solid fa-sliders"></i> <span data-i18n="sb.settings">Settings</span></div>
+      <div class="nv-modal__actions">
+        <button class="ibtn" id="btn-modal-close" type="button" data-i18n-aria="a11y.close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+
+    <div class="nv-modal__body">
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.language">Language</div>
+        <div class="seg" id="seg-lang">
+          <button type="button" data-lang=""><i class="fa-solid fa-globe"></i> <span data-i18n="set.auto">Auto</span></button>
+          <button type="button" data-lang="en">English</button>
+          <button type="button" data-lang="pt">Português</button>
+        </div>
+      </div>
+
+      <div class="set-div"></div>
+
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.appearance">Appearance</div>
+        <div class="seg" id="seg-theme">
+          <button type="button" data-theme=""><i class="fa-solid fa-circle-half-stroke"></i> <span data-i18n="set.system">System</span></button>
+          <button type="button" data-theme="light"><i class="fa-solid fa-sun"></i> <span data-i18n="set.light">Light</span></button>
+          <button type="button" data-theme="dark"><i class="fa-solid fa-moon"></i> <span data-i18n="set.dark">Dark</span></button>
+        </div>
+      </div>
+
+      <div class="set-div"></div>
+
+      <div class="set-sec">
+        <div class="set-sec__title" data-i18n="set.about">About</div>
+        <a class="abt-tile" href="/">
+          <i class="fa-solid fa-comments"></i>
+          <span class="abt-tile__t" data-i18n="tr.set.full">All settings, in the chat</span>
+          <i class="fa-solid fa-chevron-right abt-tile__chev"></i>
+        </a>
+        <a class="abt-tile" href="/translate/">
+          <i class="fa-solid fa-language"></i>
+          <span class="abt-tile__t" data-i18n="sb.translate">Translator</span>
+          <i class="fa-solid fa-chevron-right abt-tile__chev"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/res/assets/js/i18n.js"></script>
+<script src="/res/assets/js/providers.js"></script>
+<script src="/res/assets/js/benchmark.js"></script>
+</body>
+</html>

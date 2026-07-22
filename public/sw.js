@@ -5,7 +5,7 @@
    in the browser — so the cache is what makes it work with the tab offline. */
 "use strict";
 
-const CACHE = "ulocalai-v12";
+const CACHE = "ulocalai-v13";
 
 /* The shell: everything needed to boot with no network at all. */
 const SHELL = [
@@ -20,6 +20,9 @@ const SHELL = [
   "/translate/",
   "/translate/index.html",
   "/res/assets/js/translate.js",
+  "/benchmark/",
+  "/benchmark/index.html",
+  "/res/assets/js/benchmark.js",
   "/res/assets/js/i18n.js",
   "/res/fonts/fonts.css",
   "/res/fonts/fa/css/all.min.css",
@@ -64,12 +67,16 @@ self.addEventListener("notificationclick", (e) => {
   })());
 });
 
-/* Which shell answers a navigation. The translator is a page of its own, so
-   falling back to the chat's index.html for every navigation would hand the
-   wrong app to anyone opening /translate offline. */
+/* Which shell answers a navigation. The translator and the benchmark are pages
+   of their own, so falling back to the chat's index.html for every navigation
+   would hand the wrong app to anyone opening them offline. */
+const PAGES = ["/translate", "/benchmark"];
+
 async function matchShell(req) {
-  if (new URL(req.url).pathname.startsWith("/translate")) {
-    const page = await caches.match("/translate/index.html") || await caches.match("/translate/");
+  const path = new URL(req.url).pathname;
+  const own = PAGES.find((p) => path.startsWith(p));
+  if (own) {
+    const page = await caches.match(`${own}/index.html`) || await caches.match(`${own}/`);
     if (page) return page;
   }
   return (await caches.match("/index.html")) || (await caches.match("/"));
